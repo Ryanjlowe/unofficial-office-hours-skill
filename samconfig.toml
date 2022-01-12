@@ -1,0 +1,12 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "unofficial-office-hours"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1xykceq6uj786"
+s3_prefix = "unofficial-office-hours"
+region = "us-west-2"
+profile = "aws"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+image_repositories = []

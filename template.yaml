@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  unofficial-office-hours-skill
+
+  Sample SAM Template for unofficial-office-hours-skill
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+
+
+  TranscribeStart:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: transcribe-start/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Policies:
+        -
+          Statement:
+            -
+              Sid: TranscribeStart
+              Effect: Allow
+              Action:
+                - 'transcribe:StartTranscriptionJob'
+              Resource: '*'
+      Architectures:
+        - x86_64
+
+
+  TranscribeStatus:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: transcribe-status/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Policies:
+        -
+          Statement:
+            -
+              Sid: TranscribeStatus
+              Effect: Allow
+              Action:
+                - 'transcribe:GetTranscriptionJob'
+              Resource: '*'
+      Architectures:
+        - x86_64
+
+
+##########
+# TODO - determine if a custom vocab is necessary
+# VocabularyCreate:
+#   Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+#   Properties:
+#     CodeUri: vocabulary-create/
+#     Handler: app.lambda_handler
+#     Runtime: python3.9
+#     Architectures:
+#       - x86_64
+
+
+
+# Outputs:
