@@ -4,8 +4,9 @@ import json
 import datetime
 from time import mktime
 import os
-from common_lib import id_generator
 import logging
+import random
+import string
 from botocore.config import Config
 
 # Log level
@@ -49,6 +50,9 @@ config = Config(
 
 client = boto3.client('transcribe', config=config)
 
+# Creates a random string for file name
+def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for _ in range(size))
 
 # Entrypoint for lambda funciton
 def lambda_handler(event, context):
@@ -108,6 +112,11 @@ def lambda_handler(event, context):
         logger.error(str(e))
         raise ThrottlingException(e)
     return {
+        "mediaS3Location": {
+            "bucket": event['mediaS3Location']['bucket'],
+            "key": event['mediaS3Location']['key']
+        },
+        "content_type": event['content_type'],
         "success": isSuccessful,
         "transcribeJob": jobname
     }

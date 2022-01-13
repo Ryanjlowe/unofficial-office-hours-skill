@@ -12,6 +12,37 @@ Globals:
 
 Resources:
 
+  DataS3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: True
+        BlockPublicPolicy: True
+        IgnorePublicAcls: True
+        RestrictPublicBuckets: True
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  DataS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DataS3Bucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowSSLRequestsOnly
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !Sub "arn:aws:s3:::${DataS3Bucket}/*"
+              - !Sub "arn:aws:s3:::${DataS3Bucket}"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"
 
   TranscribeStart:
     Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
@@ -28,6 +59,15 @@ Resources:
               Action:
                 - 'transcribe:StartTranscriptionJob'
               Resource: '*'
+            -
+              Sid: S3Access
+              Effect: Allow
+              Action:
+                - 's3:*'
+              Resource:
+                - !Sub 'arn:aws:s3:::${DataS3Bucket}/*'
+                - !Sub 'arn:aws:s3:::${DataS3Bucket}'
+
       Architectures:
         - x86_64
 
@@ -49,6 +89,89 @@ Resources:
               Resource: '*'
       Architectures:
         - x86_64
+
+  PipelineStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      RoleArn: !GetAtt PipelineStateMachineRole.Arn
+      DefinitionString:
+        !Sub
+          - |-
+            {
+              "StartAt": "TranscribeStart",
+              "States": {
+                "TranscribeStart": {
+                  "Type": "Task",
+                  "Resource": "${TranscribeStartArn}",
+                  "Next": "TranscribeWait"
+                },
+                "TranscribeWait": {
+                  "Type": "Wait",
+                  "Seconds": 30,
+                  "Next": "TranscribeStatus"
+                },
+                "TranscribeStatus": {
+                  "Type": "Task",
+                  "Resource": "${TranscribeStatusArn}",
+                  "Next": "IsTranscribeFinished"
+                },
+                "IsTranscribeFinished": {
+                  "Type": "Choice",
+                  "Default": "TranscribeWait",
+                  "Choices": [
+                    {
+                      "Variable": "$.status",
+                      "StringEquals": "FAILED",
+                      "Next": "TranscribeFailed"
+                    },
+                    {
+                      "Variable": "$.status",
+                      "StringEquals": "COMPLETED",
+                      "Next": "End"
+                    }
+                  ]
+                },
+                "End":{
+                    "Type": "Pass",
+                    "End": true
+                },
+                "TranscribeFailed": {
+                  "Type": "Fail",
+                  "Cause": "Transcription Failed.  Check CloudWatch logs for details.",
+                  "Error": "ErrorA"
+                }
+              }
+            }
+          - {TranscribeStartArn: !GetAtt TranscribeStart.Arn, TranscribeStatusArn: !GetAtt TranscribeStatus.Arn}
+
+
+
+  PipelineStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "states.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "root"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: "lambda:InvokeFunction"
+                Resource:
+                  - !GetAtt TranscribeStart.Arn
+                  - !GetAtt TranscribeStatus.Arn
 
 
 ##########
