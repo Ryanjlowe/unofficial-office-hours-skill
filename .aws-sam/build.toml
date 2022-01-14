@@ -9,7 +9,23 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["TranscribeStart"]
 
-[function_build_definitions.50334df1-e3f1-4268-89ad-70510f975139]
+[function_build_definitions.e30fdc3e-1fc6-42a9-91de-e8d799db2bdc]
+codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/transcribe-vocab"
+runtime = "python3.9"
+architecture = "x86_64"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["TranscribeVocabCreate"]
+
+[function_build_definitions.1bcb6da2-5d41-4e36-8338-75fb8978543a]
+codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/comprehend-paragraph"
+runtime = "python3.9"
+architecture = "x86_64"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["ComprehendParagraph"]
+
+[function_build_definitions.1a2094cc-a888-4f92-8ba2-079e37e24bf4]
 codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/transcribe-status"
 runtime = "python3.9"
 architecture = "x86_64"

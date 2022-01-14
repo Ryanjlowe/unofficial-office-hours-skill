@@ -9,14 +9,6 @@ import random
 import string
 from botocore.config import Config
 
-# Log level
-logging.basicConfig()
-logger = logging.getLogger()
-if os.getenv('LOG_LEVEL') == 'DEBUG':
-    logger.setLevel(logging.DEBUG)
-else:
-    logger.setLevel(logging.INFO)
-
 
 class ThrottlingException(Exception):
     pass
@@ -56,6 +48,18 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
 
 # Entrypoint for lambda funciton
 def lambda_handler(event, context):
+
+    log_level = str(os.environ.get('LOG_LEVEL')).upper()
+    if log_level not in [
+                        'DEBUG', 'INFO',
+                        'WARNING', 'ERROR',
+                        'CRITICAL'
+                    ]:
+      log_level = 'INFO'
+    logging.getLogger().setLevel(log_level)
+
+    logging.debug(event)
+
     session = boto3.session.Session()
     region = session.region_name
 
@@ -73,14 +77,14 @@ def lambda_handler(event, context):
     if content_type not in CONTENT_TYPE_TO_MEDIA_FORMAT:
         raise InvalidInputError(content_type + " is not supported audio type.")
     media_type = CONTENT_TYPE_TO_MEDIA_FORMAT[content_type]
-    logger.info("media type: " + content_type)
+    logging.info("media type: " + content_type)
 
     # Assemble the url for the object for transcribe. It must be an s3 url in the region
     url = "https://s3-" + region + ".amazonaws.com/" + bucket + "/" + key
 
     try:
         settings = {
-            # 'VocabularyName': event['vocabularyInfo']['name'], TODO - determine if we want this later
+            'VocabularyName': os.environ.get('TRANSCRIBE_VOCAB_NAME'),
             'ShowSpeakerLabels': False
         }
 
@@ -94,24 +98,26 @@ def lambda_handler(event, context):
                 'MediaFileUri': url
             }
         )
+        logging.info(response)
         isSuccessful = "TRUE"
     except client.exceptions.BadRequestException as e:
         # There is a limit to how many transcribe jobs can run concurrently. If you hit this limit,
         # return unsuccessful and the step function will retry.
-        logger.error(str(e))
+        logging.error(str(e))
         raise ThrottlingException(e)
     except client.exceptions.LimitExceededException as e:
         # There is a limit to how many transcribe jobs can run concurrently. If you hit this limit,
         # return unsuccessful and the step function will retry.
-        logger.error(str(e))
+        logging.error(str(e))
         raise ThrottlingException(e)
     except client.exceptions.ClientError as e:
         # Return the transcription job and the success code
         # There is a limit to how many transcribe jobs can run concurrently. If you hit this limit,
         # return unsuccessful and the step function will retry.
-        logger.error(str(e))
+        logging.error(str(e))
         raise ThrottlingException(e)
-    return {
+
+    retVal = {
         "mediaS3Location": {
             "bucket": event['mediaS3Location']['bucket'],
             "key": event['mediaS3Location']['key']
@@ -120,3 +126,5 @@ def lambda_handler(event, context):
         "success": isSuccessful,
         "transcribeJob": jobname
     }
+    logging.debug(retVal)
+    return retVal

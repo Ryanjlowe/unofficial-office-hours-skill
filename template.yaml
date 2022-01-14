@@ -5,6 +5,15 @@ Description: >
 
   Sample SAM Template for unofficial-office-hours-skill
 
+
+Parameters:
+  TranscribeVocabTerms:
+    Type: String
+    Default: alexa,apl,lowe,blankenburg,alexa-presentation-language
+  TranscribeVocabName:
+    Type: String
+    Default: UnofficialOfficeHoursVocab
+
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
@@ -50,6 +59,10 @@ Resources:
       CodeUri: transcribe-start/
       Handler: app.lambda_handler
       Runtime: python3.9
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          TRANSCRIBE_VOCAB_NAME: !Ref TranscribeVocabName
       Policies:
         -
           Statement:
@@ -73,11 +86,14 @@ Resources:
 
 
   TranscribeStatus:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Serverless::Function
     Properties:
       CodeUri: transcribe-status/
       Handler: app.lambda_handler
       Runtime: python3.9
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
       Policies:
         -
           Statement:
@@ -87,6 +103,38 @@ Resources:
               Action:
                 - 'transcribe:GetTranscriptionJob'
               Resource: '*'
+      Architectures:
+        - x86_64
+
+
+  ComprehendParagraph:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: comprehend-paragraph/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          BUCKET_NAME: !Ref DataS3Bucket
+      Policies:
+        -
+          Statement:
+            -
+              Sid: ComprehendCall
+              Effect: Allow
+              Action:
+                - 'comprehend:DetectEntities'
+                - 'comprehend:DetectKeyPhrases'
+                - 'comprehend:BatchDetectEntities'
+              Resource: '*'
+            -
+              Effect: Allow
+              Action:   # TODO - figure out exactly what is needed
+                - 's3:*'
+              Resource:
+                - !Sub 'arn:aws:s3:::${DataS3Bucket}/podcasts/*'
+                - !Sub 'arn:aws:s3:::${DataS3Bucket}'
       Architectures:
         - x86_64
 
@@ -127,7 +175,23 @@ Resources:
                     {
                       "Variable": "$.status",
                       "StringEquals": "COMPLETED",
-                      "Next": "End"
+                      "Next": "ComprehendParallel"
+                    }
+                  ]
+                },
+                "ComprehendParallel": {
+                  "Type": "Parallel",
+                  "Next": "End",
+                  "Branches": [
+                    {
+                      "StartAt": "ComprehendParagraph",
+                      "States": {
+                          "ComprehendParagraph": {
+                            "Type": "Task",
+                            "Resource": "${ComprehendParagraphArn}",
+                            "End": true
+                          }
+                      }
                     }
                   ]
                 },
@@ -142,7 +206,7 @@ Resources:
                 }
               }
             }
-          - {TranscribeStartArn: !GetAtt TranscribeStart.Arn, TranscribeStatusArn: !GetAtt TranscribeStatus.Arn}
+          - {TranscribeStartArn: !GetAtt TranscribeStart.Arn, TranscribeStatusArn: !GetAtt TranscribeStatus.Arn, ComprehendParagraphArn: !GetAtt ComprehendParagraph.Arn}
 
 
 
@@ -174,16 +238,38 @@ Resources:
                   - !GetAtt TranscribeStatus.Arn
 
 
-##########
-# TODO - determine if a custom vocab is necessary
-# VocabularyCreate:
-#   Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-#   Properties:
-#     CodeUri: vocabulary-create/
-#     Handler: app.lambda_handler
-#     Runtime: python3.9
-#     Architectures:
-#       - x86_64
+
+### Resources that run once
+
+  CreateVocab:
+    Type: Custom::LoadLambda
+    Properties:
+      ServiceToken: !GetAtt TranscribeVocabCreate.Arn
+      CustomResourceAction: CreateVocab
+
+  TranscribeVocabCreate:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: transcribe-vocab/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          TRANSCRIBE_VOCAB_NAME: !Ref TranscribeVocabName
+          TRANSCRIBE_VOCAB_TERMS: !Ref TranscribeVocabTerms
+      Policies:
+        -
+          Statement:
+            -
+              Sid: TranscribeVocab
+              Effect: Allow
+              Action:
+                - 'transcribe:CreateVocabulary'
+                - 'transcribe:DeleteVocabulary'
+              Resource: '*'
+      Architectures:
+        - x86_64
 
 
 
