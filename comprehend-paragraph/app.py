@@ -19,7 +19,7 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
 # Main entry point for the lambda function
-def lambda_handler(mapping, context):
+def lambda_handler(event, context):
 
     log_level = str(os.environ.get('LOG_LEVEL')).upper()
     if log_level not in [

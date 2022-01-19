@@ -33,4 +33,12 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["TranscribeStatus"]
 
+[function_build_definitions.7fbabd20-3fd8-49e7-b066-850cc77198c1]
+codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/comprehend-fulltext"
+runtime = "python3.9"
+architecture = "x86_64"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["ComprehendFullText"]
+
 [layer_build_definitions]

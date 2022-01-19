@@ -113,6 +113,39 @@ Resources:
       CodeUri: comprehend-paragraph/
       Handler: app.lambda_handler
       Runtime: python3.9
+      Timeout: 150
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          BUCKET_NAME: !Ref DataS3Bucket
+      Policies:
+        -
+          Statement:
+            -
+              Sid: ComprehendCall
+              Effect: Allow
+              Action:
+                - 'comprehend:DetectEntities'
+                - 'comprehend:DetectKeyPhrases'
+                - 'comprehend:BatchDetectEntities'
+              Resource: '*'
+            -
+              Effect: Allow
+              Action:   # TODO - figure out exactly what is needed
+                - 's3:*'
+              Resource:
+                - !Sub 'arn:aws:s3:::${DataS3Bucket}/podcasts/*'
+                - !Sub 'arn:aws:s3:::${DataS3Bucket}'
+      Architectures:
+        - x86_64
+
+  ComprehendFullText:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: comprehend-fulltext/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Timeout: 150
       Environment:
         Variables:
           LOG_LEVEL: INFO
@@ -192,6 +225,16 @@ Resources:
                             "End": true
                           }
                       }
+                    },
+                    {
+                      "StartAt": "ComprehendFullText",
+                      "States": {
+                          "ComprehendFullText": {
+                            "Type": "Task",
+                            "Resource": "${ComprehendFullTextArn}",
+                            "End": true
+                          }
+                      }
                     }
                   ]
                 },
@@ -206,7 +249,7 @@ Resources:
                 }
               }
             }
-          - {TranscribeStartArn: !GetAtt TranscribeStart.Arn, TranscribeStatusArn: !GetAtt TranscribeStatus.Arn, ComprehendParagraphArn: !GetAtt ComprehendParagraph.Arn}
+          - {TranscribeStartArn: !GetAtt TranscribeStart.Arn, TranscribeStatusArn: !GetAtt TranscribeStatus.Arn, ComprehendParagraphArn: !GetAtt ComprehendParagraph.Arn, ComprehendFullTextArn: !GetAtt ComprehendFullText.Arn}
 
 
 
@@ -236,6 +279,8 @@ Resources:
                 Resource:
                   - !GetAtt TranscribeStart.Arn
                   - !GetAtt TranscribeStatus.Arn
+                  - !GetAtt ComprehendParagraph.Arn
+                  - !GetAtt ComprehendFullText.Arn
 
 
 
