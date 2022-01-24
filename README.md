@@ -7,6 +7,7 @@ The goal is to take the Alexa Office Hours video archives from YouTube, create a
 ## In Progress Architecture Diagram
 ![ArchDiagram](/imgs/arch.png)
 
+This skill borrows heavily from this [blog post on RSS feeds](https://aws.amazon.com/blogs/machine-learning/discovering-and-indexing-podcast-episodes-using-amazon-transcribe-and-amazon-comprehend/).
 
 # SAM CLI Information
 

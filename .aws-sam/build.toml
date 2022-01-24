@@ -41,4 +41,20 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["ComprehendFullText"]
 
+[function_build_definitions.ef95ff0f-ee93-4719-81f3-b1d0b2f93216]
+codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/mediaconvert-start"
+runtime = "python3.9"
+architecture = "x86_64"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["YouTubeConversionStart"]
+
+[function_build_definitions.a056df49-5f08-415c-ba6d-b9e4f16c8043]
+codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/mediaconvert-status"
+runtime = "python3.9"
+architecture = "x86_64"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["YouTubeConversionStatus"]
+
 [layer_build_definitions]

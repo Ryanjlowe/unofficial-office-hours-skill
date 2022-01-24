@@ -11,6 +11,9 @@ from botocore.client import Config
 # Create SDK clients for comprehend and S3
 client = boto3.client('comprehend')
 s3_client = boto3.client('s3')
+s3_resource = boto3.resource('s3')
+
+bucket = os.environ['BUCKET_NAME']
 
 entityTypes = ['COMMERCIAL_ITEM', 'EVENT', 'LOCATION', 'ORGANIZATION', 'TITLE', 'PERSON']
 
@@ -33,12 +36,13 @@ def lambda_handler(event, context):
     logging.debug(event)
 
     # Pull the bucket name from the environment variable set in the cloudformation stack
-    bucket = os.environ['BUCKET_NAME']
+
     s3val = []
     paragraphs = []
 
     # Pull the signed URL for the payload of the transcription job
     transcriptionUrl = event['transcriptionUrl']
+    output_key = 'transcribe_results/' + transcriptionUrl.split("/")[-1]
 
     # START SKIP
     # response = s3_client.get_object(Bucket=event["vocabularyInfo"]['mapping']['bucket'],
@@ -50,9 +54,9 @@ def lambda_handler(event, context):
     # logging.debug(mapping)
     # END SKIP
 
-    # Open the transcription job payload.
-    f = urlopen(transcriptionUrl)
-    j = json.loads(f.read())
+    obj = s3_resource.Object(bucket, output_key)
+    jsonstr = obj.get()['Body'].read().decode('utf-8')
+    j = json.loads(jsonstr)
 
     # Here is the JSON returned by the Amazon Transcription SDK
     # {

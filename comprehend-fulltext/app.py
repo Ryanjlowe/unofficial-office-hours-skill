@@ -21,6 +21,7 @@ ENTITY_CONFIDENCE_THRESHOLD = 0.5
 KEY_PHRASES_CONFIDENCE_THRESHOLD = 0.7
 
 s3_client = boto3.client("s3")
+s3_resource = boto3.resource('s3')
 
 # Pull the bucket name from the environment variable set in the cloudformation stack
 bucket = os.environ['BUCKET_NAME']
@@ -66,9 +67,12 @@ def process_transcript(transcription_url, vocabulary_info):
     # END SKIP
 
     # job_status_response = transcribe_client.get_transcription_job(TranscriptionJobName=transcribe_job_id)
-    response = urlopen(transcription_url)
-    output = response.read()
-    json_data = json.loads(output)
+
+    output_key = 'transcribe_results/' + transcription_url.split("/")[-1]
+
+    obj = s3_resource.Object(bucket, output_key)
+    jsonstr = obj.get()['Body'].read().decode('utf-8')
+    json_data = json.loads(jsonstr)
 
     logging.debug(json_data)
     results = json_data['results']

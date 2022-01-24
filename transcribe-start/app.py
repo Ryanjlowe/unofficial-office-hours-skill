@@ -42,6 +42,8 @@ config = Config(
 
 client = boto3.client('transcribe', config=config)
 
+output_bucket = os.environ['BUCKET_NAME']
+
 # Creates a random string for file name
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
@@ -92,6 +94,8 @@ def lambda_handler(event, context):
         response = client.start_transcription_job(
             TranscriptionJobName=jobname,
             LanguageCode='en-US',
+            OutputBucketName=output_bucket,
+            OutputKey='transcribe_results/',
             Settings=settings,
             MediaFormat=media_type,
             Media={

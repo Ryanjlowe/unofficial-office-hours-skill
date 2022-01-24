@@ -14,7 +14,6 @@ Parameters:
     Type: String
     Default: UnofficialOfficeHoursVocab
 
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
     Timeout: 3
@@ -53,8 +52,130 @@ Resources:
               Bool:
                 "aws:SecureTransport": "false"
 
+  MediaConvertJobTemplate:
+    Type: AWS::MediaConvert::JobTemplate
+    Properties:
+      AccelerationSettings:
+        Mode: "DISABLED"
+      StatusUpdateInterval: 'SECONDS_60'
+      Priority: 0
+      SettingsJson:
+        TimecodeConfig:
+          Source: 'ZEROBASED'
+        OutputGroups:
+          -
+            CustomName: Group
+            Name: 'File Group'
+            Outputs:
+              -
+                ContainerSettings:
+                  Container: 'MP4'
+                VideoDescription:
+                  CodecSettings:
+                    Codec: 'H_264'
+                    H264Settings:
+                      MaxBitrate: 5000000
+                      RateControlMode: 'QVBR'
+                      SceneChangeDetect: 'TRANSITION_DETECTION'
+                AudioDescriptions:
+                  -
+                    AudioSourceName: "Audio Selector 1"
+                    CodecSettings:
+                      Codec: 'AAC'
+                      AacSettings:
+                        Bitrate: 96000
+                        CodingMode: "CODING_MODE_2_0"
+                        SampleRate: 48000
+            OutputGroupSettings:
+              Type: "FILE_GROUP_SETTINGS"
+              FileGroupSettings:
+                Destination: !Sub "s3://{DataS3Bucket}/processed/"
+        Inputs:
+          -
+            AudioSelectors:
+              "Audio Selector 1":
+                Tracks:
+                  -
+                    1
+                DefaultSelection: "DEFAULT"
+                SelectorType: TRACK
+            TimecodeSource: 'ZEROBASED'
+
+
+
+
+
+
+  ###### LAMBDA DEFINITIONS
+
+  YouTubeConversionStart:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: mediaconvert-start/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          BUCKET_NAME: !Ref DataS3Bucket
+          MEDIACONVERT_ROLE: !GetAtt MediaConvertJobRole.Arn
+          MEDIACONVERT_TEMP_NAME: !GetAtt MediaConvertJobTemplate.Name
+      Policies:
+        -
+          Statement:
+            -
+              Sid: MediaConvertStart
+              Effect: Allow
+              Action:
+                - "mediaconvert:GetJobTemplate"
+                - "mediaconvert:CreateJob"
+                - "mediaconvert:ListJobTemplates"
+                - "mediaconvert:DescribeEndpoints"
+              Resource:
+                - !Sub "arn:aws:mediaconvert:${AWS::Region}:${AWS::AccountId}:presets/*"
+                - !Sub "arn:aws:mediaconvert:${AWS::Region}:${AWS::AccountId}:queues/*"
+                - !Sub "arn:aws:mediaconvert:${AWS::Region}:${AWS::AccountId}:jobTemplates*"
+                - !Sub "arn:aws:mediaconvert:${AWS::Region}:${AWS::AccountId}:endpoints*"
+            -
+              Sid: S3Access
+              Effect: Allow
+              Action:
+                - 's3:*'
+              Resource:
+                - !Sub 'arn:aws:s3:::${DataS3Bucket}/*'
+                - !Sub 'arn:aws:s3:::${DataS3Bucket}'
+            -
+              Sid: MediaConvertPass
+              Effect: Allow
+              Action:
+                - 'iam:PassRole'
+              Resource: !GetAtt MediaConvertJobRole.Arn
+
+  YouTubeConversionStatus:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: mediaconvert-status/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Environment:
+        Variables:
+          LOG_LEVEL: DEBUG
+      Policies:
+        -
+          Statement:
+            -
+              Sid: MediaConvertStart
+              Effect: Allow
+              Action:
+                - "mediaconvert:GetJob"
+                - "mediaconvert:DescribeEndpoints"
+              Resource:
+                - !Sub "arn:aws:mediaconvert:${AWS::Region}:${AWS::AccountId}:jobs/*"
+                - !Sub "arn:aws:mediaconvert:${AWS::Region}:${AWS::AccountId}:endpoints*"
+
+
   TranscribeStart:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Serverless::Function
     Properties:
       CodeUri: transcribe-start/
       Handler: app.lambda_handler
@@ -63,6 +184,7 @@ Resources:
         Variables:
           LOG_LEVEL: INFO
           TRANSCRIBE_VOCAB_NAME: !Ref TranscribeVocabName
+          BUCKET_NAME: !Ref DataS3Bucket
       Policies:
         -
           Statement:
@@ -134,7 +256,7 @@ Resources:
               Action:   # TODO - figure out exactly what is needed
                 - 's3:*'
               Resource:
-                - !Sub 'arn:aws:s3:::${DataS3Bucket}/podcasts/*'
+                - !Sub 'arn:aws:s3:::${DataS3Bucket}/*'
                 - !Sub 'arn:aws:s3:::${DataS3Bucket}'
       Architectures:
         - x86_64
@@ -166,7 +288,7 @@ Resources:
               Action:   # TODO - figure out exactly what is needed
                 - 's3:*'
               Resource:
-                - !Sub 'arn:aws:s3:::${DataS3Bucket}/podcasts/*'
+                - !Sub 'arn:aws:s3:::${DataS3Bucket}/*'
                 - !Sub 'arn:aws:s3:::${DataS3Bucket}'
       Architectures:
         - x86_64
@@ -179,8 +301,49 @@ Resources:
         !Sub
           - |-
             {
-              "StartAt": "TranscribeStart",
+              "StartAt": "YouTubeConvertStart",
               "States": {
+                "YouTubeConvertStart": {
+                  "Type": "Task",
+                  "Resource": "${YouTubeConversionStartArn}",
+                  "Next": "YouTubeConvertWait"
+                },
+                "YouTubeConvertWait": {
+                  "Type": "Wait",
+                  "Seconds": 30,
+                  "Next": "YouTubeConvertStatus"
+                },
+                "YouTubeConvertStatus": {
+                  "Type": "Task",
+                  "Resource": "${YouTubeConversionStatusArn}",
+                  "Next": "IsYouTubeConvertFinished"
+                },
+                "IsYouTubeConvertFinished": {
+                  "Type": "Choice",
+                  "Default": "YouTubeConvertWait",
+                  "Choices": [
+                    {
+                      "Variable": "$.status",
+                      "StringEquals": "ERROR",
+                      "Next": "YouTubeConvertFailed"
+                    },
+                    {
+                      "Variable": "$.status",
+                      "StringEquals": "CANCELED",
+                      "Next": "YouTubeConvertFailed"
+                    },
+                    {
+                      "Variable": "$.status",
+                      "StringEquals": "COMPLETE",
+                      "Next": "TranscribeStart"
+                    }
+                  ]
+                },
+                "YouTubeConvertFailed": {
+                  "Type": "Fail",
+                  "Cause": "MediaConvert Failed.  Check CloudWatch logs for details.",
+                  "Error": "ErrorA"
+                },
                 "TranscribeStart": {
                   "Type": "Task",
                   "Resource": "${TranscribeStartArn}",
@@ -249,9 +412,29 @@ Resources:
                 }
               }
             }
-          - {TranscribeStartArn: !GetAtt TranscribeStart.Arn, TranscribeStatusArn: !GetAtt TranscribeStatus.Arn, ComprehendParagraphArn: !GetAtt ComprehendParagraph.Arn, ComprehendFullTextArn: !GetAtt ComprehendFullText.Arn}
+          - {YouTubeConversionStartArn: !GetAtt YouTubeConversionStart.Arn, YouTubeConversionStatusArn: !GetAtt YouTubeConversionStatus.Arn, TranscribeStartArn: !GetAtt TranscribeStart.Arn, TranscribeStatusArn: !GetAtt TranscribeStatus.Arn, ComprehendParagraphArn: !GetAtt ComprehendParagraph.Arn, ComprehendFullTextArn: !GetAtt ComprehendFullText.Arn}
 
 
+#### IAM ROLES
+
+
+  MediaConvertJobRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "mediaconvert.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+        - "arn:aws:iam::aws:policy/AmazonAPIGatewayInvokeFullAccess"
 
   PipelineStateMachineRole:
     Type: AWS::IAM::Role
@@ -277,11 +460,12 @@ Resources:
                 Effect: "Allow"
                 Action: "lambda:InvokeFunction"
                 Resource:
+                  - !GetAtt YouTubeConversionStart.Arn
+                  - !GetAtt YouTubeConversionStatus.Arn
                   - !GetAtt TranscribeStart.Arn
                   - !GetAtt TranscribeStatus.Arn
                   - !GetAtt ComprehendParagraph.Arn
                   - !GetAtt ComprehendFullText.Arn
-
 
 
 ### Resources that run once
@@ -293,7 +477,7 @@ Resources:
       CustomResourceAction: CreateVocab
 
   TranscribeVocabCreate:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Serverless::Function
     Properties:
       CodeUri: transcribe-vocab/
       Handler: app.lambda_handler
