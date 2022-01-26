@@ -115,6 +115,7 @@ Resources:
       CodeUri: youtube-download/
       Handler: index.handler
       Runtime: nodejs14.x
+      Timeout: 150
       Environment:
         Variables:
           LOG_LEVEL: INFO

@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "youtube-dl": "^3.5.0"
+    "fs": "^0.0.1-security",
+    "ytdl-core": "^4.10.0"
   }
 }
