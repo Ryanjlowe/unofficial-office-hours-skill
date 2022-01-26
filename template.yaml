@@ -89,7 +89,7 @@ Resources:
             OutputGroupSettings:
               Type: "FILE_GROUP_SETTINGS"
               FileGroupSettings:
-                Destination: !Sub "s3://{DataS3Bucket}/processed/"
+                Destination: !Sub "s3://${DataS3Bucket}/processed/"
         Inputs:
           -
             AudioSelectors:
@@ -107,6 +107,29 @@ Resources:
 
 
   ###### LAMBDA DEFINITIONS
+
+
+  YouTubeDownload:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: youtube-download/
+      Handler: index.handler
+      Runtime: nodejs14.x
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          BUCKET_NAME: !Ref DataS3Bucket
+      Policies:
+        -
+          Statement:
+            -
+              Sid: S3Access
+              Effect: Allow
+              Action:
+                - 's3:*'
+              Resource:
+                - !Sub 'arn:aws:s3:::${DataS3Bucket}/*'
+                - !Sub 'arn:aws:s3:::${DataS3Bucket}'
 
   YouTubeConversionStart:
     Type: AWS::Serverless::Function

@@ -57,4 +57,12 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["YouTubeConversionStatus"]
 
+[function_build_definitions.d221b367-6e1a-47de-9103-264ce60bb52e]
+codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/youtube-download"
+runtime = "nodejs14.x"
+architecture = "x86_64"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["YouTubeDownload"]
+
 [layer_build_definitions]

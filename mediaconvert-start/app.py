@@ -55,7 +55,8 @@ def lambda_handler(event, context):
             "bucket": event['mediaS3Location']['bucket'],
             "key": event['mediaS3Location']['key']
         },
-        "mediaconvertJobId": response["Job"]["Id"]
+        "mediaconvertJobId": response["Job"]["Id"],
+        "mediaconvertEndpoint": endpoint
     }
     logging.info(retVal)
     return retVal

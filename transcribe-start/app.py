@@ -14,12 +14,6 @@ class ThrottlingException(Exception):
     pass
 
 
-CONTENT_TYPE_TO_MEDIA_FORMAT = {
-    "audio/mpeg": "mp3",
-    "audio/wav": "wav",
-    "audio/flac": "flac",
-    "audio/mp4a-latm": "mp4"}
-
 
 class InvalidInputError(ValueError):
     pass
@@ -42,7 +36,7 @@ config = Config(
 
 client = boto3.client('transcribe', config=config)
 
-output_bucket = os.environ['BUCKET_NAME']
+bucket = os.environ['BUCKET_NAME']
 
 # Creates a random string for file name
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
@@ -71,18 +65,13 @@ def lambda_handler(event, context):
     # Create a random name for the transcription job
     jobname = id_generator()
 
-    # Extract the bucket and key from the downloadPodcast lambda function
-    bucket = event['mediaS3Location']['bucket']
-    key = event['mediaS3Location']['key']
+    output_prefix = event['output_prefix']
 
     content_type = event['content_type']
-    if content_type not in CONTENT_TYPE_TO_MEDIA_FORMAT:
-        raise InvalidInputError(content_type + " is not supported audio type.")
-    media_type = CONTENT_TYPE_TO_MEDIA_FORMAT[content_type]
     logging.info("media type: " + content_type)
 
     # Assemble the url for the object for transcribe. It must be an s3 url in the region
-    url = "https://s3-" + region + ".amazonaws.com/" + bucket + "/" + key
+    url = "https://s3-" + region + ".amazonaws.com/" + bucket + "/" + output_prefix
 
     try:
         settings = {
@@ -94,10 +83,10 @@ def lambda_handler(event, context):
         response = client.start_transcription_job(
             TranscriptionJobName=jobname,
             LanguageCode='en-US',
-            OutputBucketName=output_bucket,
+            OutputBucketName=bucket,
             OutputKey='transcribe_results/',
             Settings=settings,
-            MediaFormat=media_type,
+            MediaFormat=content_type,
             Media={
                 'MediaFileUri': url
             }

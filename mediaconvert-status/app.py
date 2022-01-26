@@ -10,10 +10,6 @@ import string
 from botocore.config import Config
 
 
-bucket = os.environ['BUCKET_NAME']
-role = os.environ['MEDIACONVERT_ROLE']
-template_name = os.environ['MEDIACONVERT_TEMP_NAME']
-
 # Entrypoint for lambda funciton
 def lambda_handler(event, context):
 
@@ -28,11 +24,7 @@ def lambda_handler(event, context):
 
     logging.info(event)
 
-    endpoint_client = boto3.client('mediaconvert')
-
-    endpoint_response = endpoint_client.describe_endpoints()
-    logging.debug(endpoint_response)
-    endpoint = endpoint_response["Endpoints"][0]["Url"]
+    endpoint = event["mediaconvertEndpoint"]
 
     client = boto3.client('mediaconvert', endpoint_url=endpoint)
 
@@ -42,14 +34,18 @@ def lambda_handler(event, context):
 
     logging.debug(response)
 
+    output_prefix = "processed/" + event['mediaS3Location']['key'].split("/")[1]
+
     retVal = {
         "mediaS3Location": {
             "bucket": event['mediaS3Location']['bucket'],
             "key": event['mediaS3Location']['key']
         },
+        "mediaconvertEndpoint": event["mediaconvertEndpoint"],
         "mediaconvertJobId": event["mediaconvertJobId"],
         "status": response["Job"]["Status"],
-        "output_prefix": "FIND ME!"
+        "output_prefix": output_prefix,
+        "content_type": "mp4"
     }
     logging.info(retVal)
     return retVal
