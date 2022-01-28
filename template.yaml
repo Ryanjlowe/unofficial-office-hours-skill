@@ -13,6 +13,9 @@ Parameters:
   TranscribeVocabName:
     Type: String
     Default: UnofficialOfficeHoursVocab
+  YouTubeChannelID:
+    Type: String
+    Default: UCbx0SPpWT6yB7_yY_ik7pmg
 
 Globals:
   Function:
@@ -103,7 +106,12 @@ Resources:
 
 
 
-
+  VideoMetadataTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: "id"
+        Type: String
 
 
   ###### LAMBDA DEFINITIONS
@@ -116,10 +124,12 @@ Resources:
       Handler: index.handler
       Runtime: nodejs14.x
       Timeout: 150
+      MemorySize: 512
       Environment:
         Variables:
           LOG_LEVEL: INFO
           BUCKET_NAME: !Ref DataS3Bucket
+          TABLE_NAME: !Ref VideoMetadataTable
       Policies:
         -
           Statement:
@@ -131,6 +141,16 @@ Resources:
               Resource:
                 - !Sub 'arn:aws:s3:::${DataS3Bucket}/*'
                 - !Sub 'arn:aws:s3:::${DataS3Bucket}'
+            -
+              Sid: DynamodbWrite
+              Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:BatchWriteItem
+              Resource:
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${VideoMetadataTable}"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${VideoMetadataTable}/index/*"
 
   YouTubeConversionStart:
     Type: AWS::Serverless::Function
@@ -325,8 +345,13 @@ Resources:
         !Sub
           - |-
             {
-              "StartAt": "YouTubeConvertStart",
+              "StartAt": "YouTubeDownload",
               "States": {
+                "YouTubeDownload": {
+                  "Type": "Task",
+                  "Resource": "${YouTubeDownloadArn}",
+                  "Next": "YouTubeConvertStart"
+                },
                 "YouTubeConvertStart": {
                   "Type": "Task",
                   "Resource": "${YouTubeConversionStartArn}",
@@ -436,7 +461,7 @@ Resources:
                 }
               }
             }
-          - {YouTubeConversionStartArn: !GetAtt YouTubeConversionStart.Arn, YouTubeConversionStatusArn: !GetAtt YouTubeConversionStatus.Arn, TranscribeStartArn: !GetAtt TranscribeStart.Arn, TranscribeStatusArn: !GetAtt TranscribeStatus.Arn, ComprehendParagraphArn: !GetAtt ComprehendParagraph.Arn, ComprehendFullTextArn: !GetAtt ComprehendFullText.Arn}
+          - {YouTubeDownloadArn: !GetAtt YouTubeDownload.Arn,   YouTubeConversionStartArn: !GetAtt YouTubeConversionStart.Arn, YouTubeConversionStatusArn: !GetAtt YouTubeConversionStatus.Arn, TranscribeStartArn: !GetAtt TranscribeStart.Arn, TranscribeStatusArn: !GetAtt TranscribeStatus.Arn, ComprehendParagraphArn: !GetAtt ComprehendParagraph.Arn, ComprehendFullTextArn: !GetAtt ComprehendFullText.Arn}
 
 
 #### IAM ROLES
@@ -484,6 +509,7 @@ Resources:
                 Effect: "Allow"
                 Action: "lambda:InvokeFunction"
                 Resource:
+                  - !GetAtt YouTubeDownload.Arn
                   - !GetAtt YouTubeConversionStart.Arn
                   - !GetAtt YouTubeConversionStatus.Arn
                   - !GetAtt TranscribeStart.Arn
