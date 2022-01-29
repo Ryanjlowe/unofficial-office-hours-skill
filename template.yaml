@@ -55,54 +55,54 @@ Resources:
               Bool:
                 "aws:SecureTransport": "false"
 
-  MediaConvertJobTemplate:
-    Type: AWS::MediaConvert::JobTemplate
-    Properties:
-      AccelerationSettings:
-        Mode: "DISABLED"
-      StatusUpdateInterval: 'SECONDS_60'
-      Priority: 0
-      SettingsJson:
-        TimecodeConfig:
-          Source: 'ZEROBASED'
-        OutputGroups:
-          -
-            CustomName: Group
-            Name: 'File Group'
-            Outputs:
-              -
-                ContainerSettings:
-                  Container: 'MP4'
-                VideoDescription:
-                  CodecSettings:
-                    Codec: 'H_264'
-                    H264Settings:
-                      MaxBitrate: 5000000
-                      RateControlMode: 'QVBR'
-                      SceneChangeDetect: 'TRANSITION_DETECTION'
-                AudioDescriptions:
-                  -
-                    AudioSourceName: "Audio Selector 1"
-                    CodecSettings:
-                      Codec: 'AAC'
-                      AacSettings:
-                        Bitrate: 96000
-                        CodingMode: "CODING_MODE_2_0"
-                        SampleRate: 48000
-            OutputGroupSettings:
-              Type: "FILE_GROUP_SETTINGS"
-              FileGroupSettings:
-                Destination: !Sub "s3://${DataS3Bucket}/processed/"
-        Inputs:
-          -
-            AudioSelectors:
-              "Audio Selector 1":
-                Tracks:
-                  -
-                    1
-                DefaultSelection: "DEFAULT"
-                SelectorType: TRACK
-            TimecodeSource: 'ZEROBASED'
+  # MediaConvertJobTemplate:
+  #   Type: AWS::MediaConvert::JobTemplate
+  #   Properties:
+  #     AccelerationSettings:
+  #       Mode: "DISABLED"
+  #     StatusUpdateInterval: 'SECONDS_60'
+  #     Priority: 0
+  #     SettingsJson:
+  #       TimecodeConfig:
+  #         Source: 'ZEROBASED'
+  #       OutputGroups:
+  #         -
+  #           CustomName: Group
+  #           Name: 'File Group'
+  #           Outputs:
+  #             -
+  #               ContainerSettings:
+  #                 Container: 'MP4'
+  #               VideoDescription:
+  #                 CodecSettings:
+  #                   Codec: 'H_264'
+  #                   H264Settings:
+  #                     MaxBitrate: 5000000
+  #                     RateControlMode: 'QVBR'
+  #                     SceneChangeDetect: 'TRANSITION_DETECTION'
+  #               AudioDescriptions:
+  #                 -
+  #                   AudioSourceName: "Audio Selector 1"
+  #                   CodecSettings:
+  #                     Codec: 'AAC'
+  #                     AacSettings:
+  #                       Bitrate: 96000
+  #                       CodingMode: "CODING_MODE_2_0"
+  #                       SampleRate: 48000
+  #           OutputGroupSettings:
+  #             Type: "FILE_GROUP_SETTINGS"
+  #             FileGroupSettings:
+  #               Destination: !Sub "s3://${DataS3Bucket}/processed/"
+  #       Inputs:
+  #         -
+  #           AudioSelectors:
+  #             "Audio Selector 1":
+  #               Tracks:
+  #                 -
+  #                   1
+  #               DefaultSelection: "DEFAULT"
+  #               SelectorType: TRACK
+  #           TimecodeSource: 'ZEROBASED'
 
 
 
@@ -161,9 +161,7 @@ Resources:
       Environment:
         Variables:
           LOG_LEVEL: INFO
-          BUCKET_NAME: !Ref DataS3Bucket
           MEDIACONVERT_ROLE: !GetAtt MediaConvertJobRole.Arn
-          MEDIACONVERT_TEMP_NAME: !GetAtt MediaConvertJobTemplate.Name
       Policies:
         -
           Statement:

@@ -33,7 +33,8 @@ def lambda_handler(event, context):
     retval = {
         "mediaS3Location": {
             "bucket": event['mediaS3Location']['bucket'],
-            "key": event['mediaS3Location']['key']
+            "videoKey": event['mediaS3Location']['videoKey'],
+            "audioKey": event['mediaS3Location']['audioKey'],
         },
         "content_type": event['content_type'],
         "transcribeJob": event['transcribeJob'],

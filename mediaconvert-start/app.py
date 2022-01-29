@@ -9,10 +9,7 @@ import random
 import string
 from botocore.config import Config
 
-
-bucket = os.environ['BUCKET_NAME']
 role = os.environ['MEDIACONVERT_ROLE']
-template_name = os.environ['MEDIACONVERT_TEMP_NAME']
 
 # Entrypoint for lambda funciton
 def lambda_handler(event, context):
@@ -28,7 +25,9 @@ def lambda_handler(event, context):
 
     logging.info(event)
 
-    file = "s3://" + event['mediaS3Location']['bucket'] + "/" + event['mediaS3Location']['key']
+    videoFile = "s3://" + event['mediaS3Location']['bucket'] + "/" + event['mediaS3Location']['videoKey']
+    audioFile = "s3://" + event['mediaS3Location']['bucket'] + "/" + event['mediaS3Location']['audioKey']
+    destination = "s3://" + event['mediaS3Location']['bucket'] + "/processed/"
 
     endpoint_client = boto3.client('mediaconvert')
 
@@ -40,12 +39,67 @@ def lambda_handler(event, context):
 
     response = client.create_job(
         Role=role,
-        JobTemplate=template_name,
         Settings={
-            "Inputs":[{
-                "FileInput":file
-            }]
-        }
+            "TimecodeConfig": {
+              "Source": "ZEROBASED"
+            },
+            "OutputGroups": [
+              {
+                "CustomName": "Group",
+                "Name": "File Group",
+                "Outputs": [
+                  {
+                    "ContainerSettings": {
+                      "Container": "MP4",
+                      "Mp4Settings": {}
+                    },
+                    "VideoDescription": {
+                      "CodecSettings": {
+                        "Codec": "H_264",
+                        "H264Settings": {
+                          "MaxBitrate": 5000000,
+                          "RateControlMode": "QVBR",
+                          "SceneChangeDetect": "TRANSITION_DETECTION"
+                        }
+                      }
+                    },
+                    "AudioDescriptions": [
+                      {
+                        "AudioSourceName": "Audio Selector 1",
+                        "CodecSettings": {
+                          "Codec": "AAC",
+                          "AacSettings": {
+                            "Bitrate": 96000,
+                            "CodingMode": "CODING_MODE_2_0",
+                            "SampleRate": 48000
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ],
+                "OutputGroupSettings": {
+                  "Type": "FILE_GROUP_SETTINGS",
+                  "FileGroupSettings": {
+                    "Destination": destination
+                  }
+                }
+              }
+            ],
+            "Inputs": [
+              {
+                "AudioSelectors": {
+                  "Audio Selector 1": {
+                    "DefaultSelection": "DEFAULT",
+                    "ExternalAudioFileInput": audioFile
+                  }
+                },
+                "VideoSelector": {},
+                "TimecodeSource": "ZEROBASED",
+                "FileInput": videoFile
+              }
+            ]
+          }
     )
 
     logging.debug(response)
@@ -53,7 +107,8 @@ def lambda_handler(event, context):
     retVal = {
         "mediaS3Location": {
             "bucket": event['mediaS3Location']['bucket'],
-            "key": event['mediaS3Location']['key']
+            "videoKey": event['mediaS3Location']['videoKey'],
+            "audioKey": event['mediaS3Location']['audioKey'],
         },
         "mediaconvertJobId": response["Job"]["Id"],
         "mediaconvertEndpoint": endpoint
