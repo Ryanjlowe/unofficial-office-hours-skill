@@ -57,7 +57,8 @@ exports.handler = async (event) => {
 
 
   // Example to ensure the format is available
-  // itag formats:  251 - audio only,  137 - video only 1920x1080, 22 - audio & video 720p
+  // itag formats:  251 - audio only,  137 - video only 1920x1080, 22 - audio & video 720p, 136 - video only 1280 x 720
+  // Supported Resolutions:  Maximum resolution: 1280x720 - https://developer.amazon.com/en-US/docs/alexa/custom-skills/videoapp-interface-reference.html#supported-video-formats-and-resolutions
   // let format = ytdl.chooseFormat(info.formats, { quality: '137' });
 
   const key = `unprocessed/${name}.mp4`;
@@ -72,14 +73,15 @@ exports.handler = async (event) => {
           "key": key,
           "publishDate": publishDate,
           "description": description,
-          "lengthSeconds": lengthSeconds
+          "lengthSeconds": lengthSeconds,
+          "youtubeUrl": event.youtubeUrl
       }
   };
 
   return docClient.put(params).promise()
     .then(() => {
       return Promise.all([
-        downloadYoutube(event.youtubeUrl, key, '137'),
+        downloadYoutube(event.youtubeUrl, key, '136'),
         downloadYoutube(event.youtubeUrl, audioKey, '251')
       ]);
     })
