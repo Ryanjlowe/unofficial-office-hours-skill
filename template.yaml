@@ -154,6 +154,31 @@ Resources:
                 - !Ref PipelineStateMachine
 
 
+  YouTubeGetInfo:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: youtube-getinfo/
+      Handler: index.handler
+      Runtime: nodejs14.x
+      Timeout: 20
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          TABLE_NAME: !Ref VideoMetadataTable
+      Policies:
+        -
+          Statement:
+            -
+              Sid: DynamodbWrite
+              Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:BatchWriteItem
+              Resource:
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${VideoMetadataTable}"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${VideoMetadataTable}/index/*"
+
 
   YouTubeDownload:
     Type: AWS::Serverless::Function
@@ -167,7 +192,6 @@ Resources:
         Variables:
           LOG_LEVEL: INFO
           BUCKET_NAME: !Ref DataS3Bucket
-          TABLE_NAME: !Ref VideoMetadataTable
       Policies:
         -
           Statement:
@@ -179,16 +203,7 @@ Resources:
               Resource:
                 - !Sub 'arn:aws:s3:::${DataS3Bucket}/*'
                 - !Sub 'arn:aws:s3:::${DataS3Bucket}'
-            -
-              Sid: DynamodbWrite
-              Effect: Allow
-              Action:
-                - dynamodb:PutItem
-                - dynamodb:UpdateItem
-                - dynamodb:BatchWriteItem
-              Resource:
-                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${VideoMetadataTable}"
-                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${VideoMetadataTable}/index/*"
+
 
   YouTubeConversionStart:
     Type: AWS::Serverless::Function
@@ -381,8 +396,18 @@ Resources:
         !Sub
           - |-
             {
-              "StartAt": "YouTubeDownload",
+              "StartAt": "YouTubeGetInfo",
               "States": {
+                "YouTubeGetInfo":{
+                  "Type": "Task",
+                  "Resource": "${YouTubeGetInfoArn}",
+                  "Next": "YouTubeWait"
+                },
+                "YouTubeWait": {
+                  "Type": "Wait",
+                  "SecondsPath": "$.secondsWait",
+                  "Next": "YouTubeDownload"
+                },
                 "YouTubeDownload": {
                   "Type": "Task",
                   "Resource": "${YouTubeDownloadArn}",
@@ -497,7 +522,7 @@ Resources:
                 }
               }
             }
-          - {YouTubeDownloadArn: !GetAtt YouTubeDownload.Arn,   YouTubeConversionStartArn: !GetAtt YouTubeConversionStart.Arn, YouTubeConversionStatusArn: !GetAtt YouTubeConversionStatus.Arn, TranscribeStartArn: !GetAtt TranscribeStart.Arn, TranscribeStatusArn: !GetAtt TranscribeStatus.Arn, ComprehendParagraphArn: !GetAtt ComprehendParagraph.Arn, ComprehendFullTextArn: !GetAtt ComprehendFullText.Arn}
+          - {YouTubeGetInfoArn: !GetAtt YouTubeGetInfo.Arn, YouTubeDownloadArn: !GetAtt YouTubeDownload.Arn,   YouTubeConversionStartArn: !GetAtt YouTubeConversionStart.Arn, YouTubeConversionStatusArn: !GetAtt YouTubeConversionStatus.Arn, TranscribeStartArn: !GetAtt TranscribeStart.Arn, TranscribeStatusArn: !GetAtt TranscribeStatus.Arn, ComprehendParagraphArn: !GetAtt ComprehendParagraph.Arn, ComprehendFullTextArn: !GetAtt ComprehendFullText.Arn}
 
 
 #### IAM ROLES
@@ -545,6 +570,7 @@ Resources:
                 Effect: "Allow"
                 Action: "lambda:InvokeFunction"
                 Resource:
+                  - !GetAtt YouTubeGetInfo.Arn
                   - !GetAtt YouTubeDownload.Arn
                   - !GetAtt YouTubeConversionStart.Arn
                   - !GetAtt YouTubeConversionStatus.Arn

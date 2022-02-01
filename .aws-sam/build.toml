@@ -73,4 +73,12 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["YouTubeCallbackApiLambda"]
 
+[function_build_definitions.651d1fe4-193f-4031-ac49-813918730166]
+codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/youtube-getinfo"
+runtime = "nodejs14.x"
+architecture = "x86_64"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["YouTubeGetInfo"]
+
 [layer_build_definitions]

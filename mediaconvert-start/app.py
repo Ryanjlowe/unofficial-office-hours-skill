@@ -25,8 +25,9 @@ def lambda_handler(event, context):
 
     logging.info(event)
 
+    hasAudioKey = True if event['mediaS3Location']['audioKey'] != '' else False
+
     videoFile = "s3://" + event['mediaS3Location']['bucket'] + "/" + event['mediaS3Location']['videoKey']
-    audioFile = "s3://" + event['mediaS3Location']['bucket'] + "/" + event['mediaS3Location']['audioKey']
     destination = "s3://" + event['mediaS3Location']['bucket'] + "/processed/"
 
     endpoint_client = boto3.client('mediaconvert')
@@ -36,6 +37,27 @@ def lambda_handler(event, context):
     endpoint = endpoint_response["Endpoints"][0]["Url"]
 
     client = boto3.client('mediaconvert', endpoint_url=endpoint)
+
+
+    audioSelectors = {
+      "Audio Selector 1": {
+        "Tracks": [
+          1
+        ],
+        "DefaultSelection": "DEFAULT",
+        "SelectorType": "TRACK"
+      }
+    }
+
+    if hasAudioKey:
+        audioFile = "s3://" + event['mediaS3Location']['bucket'] + "/" + event['mediaS3Location']['audioKey']
+        audioSelectors = {
+          "Audio Selector 1": {
+            "DefaultSelection": "DEFAULT",
+            "ExternalAudioFileInput": audioFile
+          }
+        }
+
 
     response = client.create_job(
         Role=role,
@@ -88,12 +110,7 @@ def lambda_handler(event, context):
             ],
             "Inputs": [
               {
-                "AudioSelectors": {
-                  "Audio Selector 1": {
-                    "DefaultSelection": "DEFAULT",
-                    "ExternalAudioFileInput": audioFile
-                  }
-                },
+                "AudioSelectors": audioSelectors,
                 "VideoSelector": {},
                 "TimecodeSource": "ZEROBASED",
                 "FileInput": videoFile
