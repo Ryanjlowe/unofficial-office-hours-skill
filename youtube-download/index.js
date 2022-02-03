@@ -26,10 +26,10 @@ const downloadYoutube = async(youtubeUrl, key, quality) => {
       Key: key,
       Body: passthrough
     },
-    partSize: 1024 * 1024 * 64 // 64 MB in bytes
+    partSize: 1024 * 1024 * 6 // 64 MB in bytes
   });
   upload.on('httpUploadProgress', (event) => {
-    console.log(event.loaded * 100 / event.total);
+    console.log(JSON.stringify(event));
   });
   return upload.promise()
     .then((data) => {
@@ -57,6 +57,7 @@ exports.handler = async (event) => {
   const name = title.replace(/[^a-zA-Z0-9]+/g, "-");
 
   console.log(JSON.stringify(info));
+  console.log(JSON.stringify(info.formats));
 
   // Example to ensure the format is available
   // itag formats:  251 - audio only,  137 - video only 1920x1080, 22 - audio & video 720p, 136 - video only 1280 x 720
@@ -71,13 +72,15 @@ exports.handler = async (event) => {
   const promises = [];
 
   try {
-    let format = ytdl.chooseFormat(info.formats, { quality: '95' });
-    promises.push(downloadYoutube(event.youtubeUrl, key, '95'));
+    let format = ytdl.chooseFormat(info.formats, { quality: '22' });
+    promises.push(downloadYoutube(event.youtubeUrl, key, '22'));
+    // promises.push(downloadYoutube(event.youtubeUrl, audioKey, '251'));
+
 
   } catch {
 
-    promises.push(downloadYoutube(event.youtubeUrl, key, '136'));
-    promises.push(downloadYoutube(event.youtubeUrl, audioKey, '251'));
+    let format = ytdl.chooseFormat(info.formats, { quality: '95' });
+    promises.push(downloadYoutube(event.youtubeUrl, key, '95'));
 
   }
 
