@@ -15,6 +15,10 @@ Parameters:
   YouTubeChannelID:
     Type: String
     Default: UCbx0SPpWT6yB7_yY_ik7pmg
+  OSDomainName:
+    Type: String
+    Default: officehours
+
 
 Globals:
   Function:
@@ -117,6 +121,224 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       StageName: prod
+
+########################################
+# Cognito identity pool                #
+########################################
+  CognitoUnauthRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                "cognito-identity.amazonaws.com:aud": !Ref CognitoIdentityPool
+
+  CognitoAuthRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                "cognito-identity.amazonaws.com:aud": !Ref CognitoIdentityPool
+
+  CognitoIdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      AllowUnauthenticatedIdentities: true
+      CognitoIdentityProviders:
+      - ClientId: !Ref CognitoApplicationClient
+        ProviderName: !Sub cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPool}
+        ServerSideTokenCheck: false
+
+  CognitoIdentityPoolRole:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref CognitoIdentityPool
+      Roles:
+        unauthenticated: !GetAtt CognitoUnauthRole.Arn
+        authenticated: !GetAtt CognitoAuthRole.Arn
+
+#########################################################
+# The below gives OS service access                      #
+# to configure the Amazon Cognito user and identity pools #
+# and use them for authentication                        #
+#########################################################
+
+  CognitoAccessForAmazonOS:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: es.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonOpenSearchServiceCognitoAccess
+
+
+############################################################################################
+# The below gives the role used by authenticated users from the cognito user pool          #
+# to access the ES domain                                                                  #
+############################################################################################
+  CognitoAuthKibanaPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - es:ESHttp*
+            Resource: !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${ESDomainName}/*'
+      Description: give role used by authenticated users from the cognito user pool access to the ES domain
+      Roles:
+        - !Ref CognitoAuthRole
+
+########################################
+# Cognito User pool                    #
+########################################
+
+  CognitoUserPool:
+    Type: "AWS::Cognito::UserPool"
+    Properties:
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+        InviteMessageTemplate:
+          EmailMessage: 'Welcome to the Office Hours Indexer. Username: {username} Pwd: {####}'
+          EmailSubject: Welcome to Office Hours Indexer.
+          SMSMessage: 'Welcome to Office Hours Indexer. Username: {username} Pwd: {####}'
+        UnusedAccountValidityDays: 14
+      AliasAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      EmailVerificationMessage: 'Welcome to the Office Hours Indexer. Here is your confirmation code: {####}'
+      EmailVerificationSubject: Office Hours Indexer Email Confirmation Code
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          RequireUppercase: true
+      UserPoolName: !Sub '${AWS::StackName}-users'
+  CognitoApplicationClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Properties:
+        ClientName: !Sub '${AWS::StackName}-appclient'
+        GenerateSecret: false
+        RefreshTokenValidity: 2
+        UserPoolId: !Ref CognitoUserPool
+
+  CognitoUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Sub 'kibana-${AWS::StackName}-${AWS::Region}-${AWS::AccountId}'
+      UserPoolId: !Ref CognitoUserPool
+
+  ESCognito:
+    Type: Custom::ESName
+    DependsOn:
+      - SetupESCognitoCustomResourceLambda
+    Properties:
+      ServiceToken: !GetAtt SetupESCognitoCustomResourceLambda.Arn
+      StackName: !Ref AWS::StackName
+      EsCluster: !Ref ESDomainName
+      UserPoolId: !Ref CognitoUserPool
+      kibanaUser: !Ref kibanaUser
+
+  CognitoSetupLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: cognito-setup/
+      Handler: app.configure_cognito_lambda_handler
+      Runtime: python3.9
+      MemorySize: 512
+      Timeout: 240
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'cognito-idp:AdminCreateUser'
+              - 'cognito-idp:CreateUserPoolDomain'
+              - 'cognito-idp:DeleteUserPoolDomain'
+            Resource:
+              - !GetAtt CognitoUserPool.Arn
+
+
+  OpenSearchDomain:
+    Type: AWS::OpenSearchService::Domain
+    DependsOn:
+    - ESCognito
+    Properties:
+      CognitoOptions:
+        Enabled: true
+        IdentityPoolId: !Ref CognitoIdentityPool
+        RoleArn: !GetAtt CognitoAccessForAmazonOS.Arn
+        UserPoolId: !Ref CognitoUserPool
+      DomainName: !Ref OSDomainName
+      EBSOptions:
+        EBSEnabled: true
+        VolumeSize: 10
+        VolumeType: gp2
+      AdvancedOptions:
+        indices.fielddata.cache.size: ''
+        rest.action.multi.allow_explicit_index: 'true'
+      ClusterConfig:
+        DedicatedMasterEnabled: false
+        InstanceCount: 1
+        InstanceType: t3.small.search
+        ZoneAwarenessEnabled: false
+      EngineVersion: 'Elasticsearch_1.1'
+
+  CreateOSIndex:
+    Type: Custom::LoadLambda
+    DependsOn:
+      - OpenSearchDomain
+    Properties:
+      ServiceToken: !GetAtt CognitoSetupLambda.Arn
+      CustomResourceAction: create_episode_index
+
+  CognitoSetupLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: index-create/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      MemorySize: 256
+      Timeout: 60
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          OS_DOMAIN: !GetAtt OpenSearchDomain.DomainEndpoint
+      Policies:
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'es:ESHttpGet'
+              - 'es:ESHttpPost'
+              - 'es:ESHttpPut'
+              - 'es:ESHttpHead'
+            Resource:
+              - !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${OpenSearchDomain}/*'
+              - !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${OpenSearchDomain}'
 
 
   ###### LAMBDA DEFINITIONS
