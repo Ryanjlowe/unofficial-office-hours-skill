@@ -27,7 +27,7 @@ osendpoint = os.environ['OS_DOMAIN']
 # get the Elasticsearch index name from the environment variables
 FULL_EPISODE_INDEX = os.getenv('ES_EPISODE_INDEX', default='episodes')
 # get the Elasticsearch index name from the environment variables
-KEYWORDS_INDEX = os.getenv('ES_PARAGRAPH_INDEX', default='paragraphs')
+PARAGRAPHS_INDEX = os.getenv('ES_PARAGRAPH_INDEX', default='paragraphs')
 
 s3_client = boto3.client('s3')
 # Create the auth token for the sigv4 signature
@@ -72,8 +72,6 @@ client = OpenSearch(
 
 
 
-
-
 def create_episode_index():
     mappings = '''
     {
@@ -112,25 +110,55 @@ def create_episode_index():
     logger.info(json.dumps(res, indent=2))
     logger.info('REQUEST_TIME es_client.indices.create {:10.4f}'.format(round_trip))
 
+def create_paragraph_index():
+    mappings = '''
+    {
+        "mappings": {
+            "properties": {
+                "media_url":{
+                    "type": "keyword"
+                },
+                "transcript":{
+                    "type": "text"
+                },
+                "published_time":{
+                    "type":   "date",
+                    "format": "yyyy:MM:dd HH:mm:ss"
+                },
+                "speaker": {
+                    "type": "text"
+                }
+            }
+        }
+    }
+    '''
+    start = time.time()
+    logger.info("mappings to create for index: " + mappings)
+    res = client.indices.create(index=PARAGRAPHS_INDEX, body=mappings)
+    round_trip = time.time() - start
+    logger.info(json.dumps(res, indent=2))
+    logger.info('REQUEST_TIME es_client.indices.create {:10.4f}'.format(round_trip))
+
 
 def lambda_handler(event, context):
-    # TODO - START HERE TO MAKE THIS CFN HAPPY
-    # try:
-    #     if event['RequestType'] == 'Create':
-    #         create_response = create(event)
-    #         cfnresponse.send(event, context, cfnresponse.SUCCESS, create_response)
-    #     if event['RequestType'] == 'Update':
-    #         cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
-    #     elif event['RequestType'] == 'Delete':
-    #         result_status = delete(event)
-    #         cfnresponse.send(event, context, result_status, {})
-    # except:
-    #     logger.error("Error", exc_info=True)
-    #     cfnresponse.send(event, context, cfnresponse.FAILED, {})
+    try:
+        if event['RequestType'] == 'Create':
+            if not client.indices.exists(index=FULL_EPISODE_INDEX):
+                create_episode_index()
+            else:
+                logger.info("index " + FULL_EPISODE_INDEX + " already exists. skipping index creation.")
 
+            if not client.indices.exists(index=PARAGRAPHS_INDEX):
+                create_paragraph_index()
+            else:
+                logger.info("index " + FULL_EPISODE_INDEX + " already exists. skipping index creation.")
 
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, create_response)
 
-    if not client.indices.exists(index=FULL_EPISODE_INDEX):
-        create_episode_index()
-    else:
-        logger.info("index " + FULL_EPISODE_INDEX + " already exists. skipping index creation.")
+        if event['RequestType'] == 'Update':
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+        elif event['RequestType'] == 'Delete':
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+    except:
+        logger.error("Error", exc_info=True)
+        cfnresponse.send(event, context, cfnresponse.FAILED, {})

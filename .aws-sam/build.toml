@@ -81,4 +81,20 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["YouTubeGetInfo"]
 
+[function_build_definitions.967f025b-4521-4c7e-a61f-2c934c15ff78]
+codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/cognito-setup"
+runtime = "python3.9"
+architecture = "x86_64"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["SetupOSCognitoCustomResourceLambda"]
+
+[function_build_definitions.411b489d-42aa-49a8-b43c-8d805f9665d0]
+codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/index-create"
+runtime = "python3.9"
+architecture = "x86_64"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["CreateOSIndexLambda"]
+
 [layer_build_definitions]

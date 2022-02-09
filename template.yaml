@@ -18,6 +18,10 @@ Parameters:
   OSDomainName:
     Type: String
     Default: officehours
+  kibanaUser:
+    Type: String
+    Default: kibana
+    Description: The name of the user that is used to log into kibana.
 
 
 Globals:
@@ -203,7 +207,7 @@ Resources:
           - Effect: Allow
             Action:
               - es:ESHttp*
-            Resource: !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${ESDomainName}/*'
+            Resource: !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${OSDomainName}/*'
       Description: give role used by authenticated users from the cognito user pool access to the ES domain
       Roles:
         - !Ref CognitoAuthRole
@@ -253,15 +257,15 @@ Resources:
   ESCognito:
     Type: Custom::ESName
     DependsOn:
-      - SetupESCognitoCustomResourceLambda
+      - SetupOSCognitoCustomResourceLambda
     Properties:
-      ServiceToken: !GetAtt SetupESCognitoCustomResourceLambda.Arn
+      ServiceToken: !GetAtt SetupOSCognitoCustomResourceLambda.Arn
       StackName: !Ref AWS::StackName
-      EsCluster: !Ref ESDomainName
+      EsCluster: !Ref OSDomainName
       UserPoolId: !Ref CognitoUserPool
       kibanaUser: !Ref kibanaUser
 
-  CognitoSetupLambda:
+  SetupOSCognitoCustomResourceLambda:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: cognito-setup/
@@ -306,17 +310,17 @@ Resources:
         InstanceCount: 1
         InstanceType: t3.small.search
         ZoneAwarenessEnabled: false
-      EngineVersion: 'Elasticsearch_1.1'
+      EngineVersion: 'OpenSearch_1.1'
 
   CreateOSIndex:
     Type: Custom::LoadLambda
     DependsOn:
       - OpenSearchDomain
     Properties:
-      ServiceToken: !GetAtt CognitoSetupLambda.Arn
+      ServiceToken: !GetAtt CreateOSIndexLambda.Arn
       CustomResourceAction: create_episode_index
 
-  CognitoSetupLambda:
+  CreateOSIndexLambda:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: index-create/
@@ -840,3 +844,12 @@ Outputs:
   APIEndpointUrl:
     Description: "API Gateway endpoint URL for Prod stage for Youtube Trigger function"
     Value: !Sub "https://${YouTubeCallbackAPI}.execute-api.${AWS::Region}.amazonaws.com/prod/"
+  KibanaPassword:
+    Description: The password for the kibana user
+    Value: !GetAtt ESCognito.KibanaPassword
+  KibanaUser:
+    Description: The username for the kibana user
+    Value: !GetAtt ESCognito.KibanaUser
+  KibanaUrl:
+    Description: A hyperlink to the Kibana tool
+    Value: !Sub https://${OpenSearchDomain.DomainEndpoint}/_plugin/kibana/
