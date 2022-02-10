@@ -34,7 +34,7 @@ def configure_cognito_lambda_handler(event, context):
             create_response = create(event)
             cfnresponse.send(event, context, cfnresponse.SUCCESS, create_response)
         if event['RequestType'] == 'Update':
-            cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, {"DashboardUser": '',"DashboardPassword": ''})
         elif event['RequestType'] == 'Delete':
             result_status = delete(event)
             cfnresponse.send(event, context, result_status, {})
@@ -46,11 +46,11 @@ def configure_cognito_lambda_handler(event, context):
 def create(event):
     user_pool_id = event['ResourceProperties']['UserPoolId']
 
-    kibana_user, kibana_password, kibana_email = get_user_credentials(event)
-    add_user(user_pool_id, kibana_user, kibana_email, kibana_password)
+    dashboard_user, dashboard_password, dashboard_email = get_user_credentials(event)
+    add_user(user_pool_id, dashboard_user, dashboard_email, dashboard_password)
     return {
-        "KibanaUser": kibana_user,
-        "KibanaPassword": kibana_password}
+        "DashboardUser": dashboard_user,
+        "DashboardPassword": dashboard_password}
 
 
 def delete(event):
@@ -58,39 +58,39 @@ def delete(event):
 
 
 def get_user_credentials(event):
-    if 'kibanaUser' in event['ResourceProperties'] and event['ResourceProperties']['kibanaUser'] != '':
-        kibanaUser = event['ResourceProperties']['kibanaUser']
+    if 'DashboardUser' in event['ResourceProperties'] and event['ResourceProperties']['DashboardUser'] != '':
+        DashboardUser = event['ResourceProperties']['DashboardUser']
     else:
-        kibanaUser = 'kibana'
+        DashboardUser = 'admin'
 
-    if 'kibanaEmail' in event['ResourceProperties'] and event['ResourceProperties']['kibanaEmail'] != '':
-        kibanaEmail = event['ResourceProperties']['kibanaEmail']
+    if 'DashboardEmail' in event['ResourceProperties'] and event['ResourceProperties']['kibDashboardEmailanaEmail'] != '':
+        DashboardEmail = event['ResourceProperties']['DashboardEmail']
     else:
-        kibanaEmail = id_generator(6) + '@example.com'
+        DashboardEmail = id_generator(6) + '@example.com'
 
-    kibanaPassword = pwd_generator()
-    return kibanaUser, kibanaPassword, kibanaEmail
+    DashboardPassword = pwd_generator()
+    return DashboardUser, DashboardPassword, DashboardEmail
 
 
-def add_user(userPoolId, kibanaUser, kibanaEmail, kibanaPassword):
+def add_user(userPoolId, DashboardUser, DashboardEmail, DashboardPassword):
     cognito_response = cognito_idp_client.admin_create_user(
         UserPoolId=userPoolId,
-        Username=kibanaUser,
+        Username=DashboardUser,
         UserAttributes=[
             {
                 'Name': 'email',
-                'Value': kibanaEmail
+                'Value': DashboardEmail
             },
             {
                 'Name': 'email_verified',
                 'Value': 'True'
             }
         ],
-        TemporaryPassword=kibanaPassword,
+        TemporaryPassword=DashboardPassword,
         MessageAction='SUPPRESS',
         DesiredDeliveryMediums=[
             'EMAIL'
         ]
     )
-    logger.info("create Cognito user {} for user pool {} successful.".format(kibanaUser, userPoolId))
+    logger.info("create Cognito user {} for user pool {} successful.".format(DashboardUser, userPoolId))
     return cognito_response

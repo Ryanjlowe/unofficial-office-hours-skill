@@ -5,7 +5,7 @@
 codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/lambda/cognito-setup"
 runtime = "python3.9"
 architecture = "x86_64"
-source_hash = "c5aa7ff2167685b90d04b376e59f4463c8e9e99a36e58d0b2550ca719aef417d"
+source_hash = "b93fc97fba294dbd98070748a447ce80366376706f6b75f2d1b91d81eed5b019"
 manifest_hash = ""
 packagetype = "Zip"
 functions = ["SetupOSCognitoCustomResourceLambda"]
