@@ -106,7 +106,7 @@ def process_transcript(transcription_url, vocabulary_info):
     doc_to_update['transcript_entities'] = entities_as_list
     logging.info(doc_to_update)
     # doc_to_update['key_phrases'] = key_phrases
-    key = 'podcasts/transcript/' + id_generator() + '.json'
+    key = 'comprehend_output/transcript/' + id_generator() + '.json'
 
     response = s3_client.put_object(Body=json.dumps(doc_to_update, indent=2), Bucket=bucket, Key=key)
     logging.info(response)
@@ -365,11 +365,8 @@ def lambda_handler(event, context):
     transcript_location = process_transcript(transcription_url,  vocab_info)
 
     retVal = {
-        "mediaS3Location": {
-            "bucket": event['mediaS3Location']['bucket'],
-            "videoKey": event['mediaS3Location']['videoKey'],
-            "audioKey": event['mediaS3Location']['audioKey'],
-        },
+        "mediaS3Location": event['mediaS3Location'],
+        "metadata": event["metadata"],
         "content_type": event['content_type'],
         "transcribeJob": event['transcribeJob'],
         "transcriptionUrl": event['transcriptionUrl'],

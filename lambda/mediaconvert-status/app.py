@@ -37,11 +37,8 @@ def lambda_handler(event, context):
     output_prefix = "processed/" + event['mediaS3Location']['videoKey'].split("/")[1]
 
     retVal = {
-        "mediaS3Location": {
-            "bucket": event['mediaS3Location']['bucket'],
-            "videoKey": event['mediaS3Location']['videoKey'],
-            "audioKey": event['mediaS3Location']['audioKey'],
-        },
+        "mediaS3Location": event['mediaS3Location'],
+        "metadata": event["metadata"],
         "mediaconvertEndpoint": event["mediaconvertEndpoint"],
         "mediaconvertJobId": event["mediaconvertJobId"],
         "status": response["Job"]["Status"],

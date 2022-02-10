@@ -223,7 +223,7 @@ def lambda_handler(event, context):
     # Create a payload for the output of the transcribe and comprehend API calls. There's a limit on the
     # amount of data stored in a step function payload, so we will use S3 to store the payload instead.
     # This can get to be pretty big.
-    key = 'podcasts/keywords/' + id_generator() + '.json'
+    key = 'comprehend_output/keywords/' + id_generator() + '.json'
     # store s3val to s3
     response = s3_client.put_object(Body=json.dumps(s3val, indent=2), Bucket=bucket, Key=key)
 
@@ -233,11 +233,8 @@ def lambda_handler(event, context):
     # Return the bucket and key of the transcription / comprehend result.
 
     retVal = {
-        "mediaS3Location": {
-            "bucket": event['mediaS3Location']['bucket'],
-            "videoKey": event['mediaS3Location']['videoKey'],
-            "audioKey": event['mediaS3Location']['audioKey'],
-        },
+        "mediaS3Location": event['mediaS3Location'],
+        "metadata": event["metadata"],
         "content_type": event['content_type'],
         "transcribeJob": event['transcribeJob'],
         "transcriptionUrl": event['transcriptionUrl'],

@@ -31,11 +31,8 @@ def lambda_handler(event, context):
     status = response['TranscriptionJob']['TranscriptionJobStatus']
 
     retval = {
-        "mediaS3Location": {
-            "bucket": event['mediaS3Location']['bucket'],
-            "videoKey": event['mediaS3Location']['videoKey'],
-            "audioKey": event['mediaS3Location']['audioKey'],
-        },
+        "mediaS3Location": event['mediaS3Location'],
+        "metadata": event["metadata"],
         "content_type": event['content_type'],
         "transcribeJob": event['transcribeJob'],
         "status": status

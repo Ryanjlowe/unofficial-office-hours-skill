@@ -122,11 +122,8 @@ def lambda_handler(event, context):
     logging.debug(response)
 
     retVal = {
-        "mediaS3Location": {
-            "bucket": event['mediaS3Location']['bucket'],
-            "videoKey": event['mediaS3Location']['videoKey'],
-            "audioKey": event['mediaS3Location']['audioKey'],
-        },
+        "mediaS3Location": event['mediaS3Location'],
+        "metadata": event["metadata"],
         "mediaconvertJobId": response["Job"]["Id"],
         "mediaconvertEndpoint": endpoint
     }

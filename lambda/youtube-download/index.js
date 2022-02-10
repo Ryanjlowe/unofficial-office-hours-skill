@@ -98,7 +98,8 @@ exports.handler = async (event) => {
           "bucket": bucket,
           "videoKey": results[0].key,
           "audioKey": audioKey
-        }
+        },
+        "metadata": event.metadata
       };
     })
     .catch((error) => {

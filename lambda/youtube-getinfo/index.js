@@ -43,7 +43,14 @@ exports.handler = async (event) => {
     .then(() => {
       return {
         "youtubeUrl": event.youtubeUrl,
-        "secondsWait": secondsWait
+        "secondsWait": secondsWait,
+        "metadata":{
+          "YouTubeVideoID": id,
+          "Title": title,
+          "Name": name,
+          "PublishDate": publishDate,
+          "YouTubeURL": event.youtubeUrl
+        }
       };
     })
     .catch((error) => {
