@@ -18,10 +18,10 @@ Parameters:
   OSDomainName:
     Type: String
     Default: officehours
-  kibanaUser:
+  DashboardUser:
     Type: String
-    Default: kibana
-    Description: The name of the user that is used to log into kibana.
+    Default: admin
+    Description: The name of the user that is used to log into OpenSearch Dashboard.
 
 
 Globals:
@@ -263,12 +263,12 @@ Resources:
       StackName: !Ref AWS::StackName
       EsCluster: !Ref OSDomainName
       UserPoolId: !Ref CognitoUserPool
-      kibanaUser: !Ref kibanaUser
+      DashboardUser: !Ref DashboardUser
 
   SetupOSCognitoCustomResourceLambda:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: cognito-setup/
+      CodeUri: lambda/cognito-setup/
       Handler: app.configure_cognito_lambda_handler
       Runtime: python3.9
       MemorySize: 512
@@ -323,7 +323,7 @@ Resources:
   CreateOSIndexLambda:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: index-create/
+      CodeUri: lambda/index-create/
       Handler: app.lambda_handler
       Runtime: python3.9
       MemorySize: 256
@@ -350,7 +350,7 @@ Resources:
   YouTubeCallbackApiLambda:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: youtube-callback-api
+      CodeUri: lambda/youtube-callback-api
       Handler: app.lambda_handler
       Runtime: python3.9
       Environment:
@@ -383,7 +383,7 @@ Resources:
   YouTubeGetInfo:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: youtube-getinfo/
+      CodeUri: lambda/youtube-getinfo/
       Handler: index.handler
       Runtime: nodejs14.x
       Timeout: 20
@@ -409,7 +409,7 @@ Resources:
   YouTubeDownload:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: youtube-download/
+      CodeUri: lambda/youtube-download/
       Handler: index.handler
       Runtime: nodejs14.x
       Timeout: 300
@@ -434,7 +434,7 @@ Resources:
   YouTubeConversionStart:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: mediaconvert-start/
+      CodeUri: lambda/mediaconvert-start/
       Handler: app.lambda_handler
       Runtime: python3.9
       Environment:
@@ -475,7 +475,7 @@ Resources:
   YouTubeConversionStatus:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: mediaconvert-status/
+      CodeUri: lambda/mediaconvert-status/
       Handler: app.lambda_handler
       Runtime: python3.9
       Environment:
@@ -498,7 +498,7 @@ Resources:
   TranscribeStart:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: transcribe-start/
+      CodeUri: lambda/transcribe-start/
       Handler: app.lambda_handler
       Runtime: python3.9
       Environment:
@@ -531,7 +531,7 @@ Resources:
   TranscribeStatus:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: transcribe-status/
+      CodeUri: lambda/transcribe-status/
       Handler: app.lambda_handler
       Runtime: python3.9
       Environment:
@@ -553,7 +553,7 @@ Resources:
   ComprehendParagraph:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: comprehend-paragraph/
+      CodeUri: lambda/comprehend-paragraph/
       Handler: app.lambda_handler
       Runtime: python3.9
       Timeout: 150
@@ -585,7 +585,7 @@ Resources:
   ComprehendFullText:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: comprehend-fulltext/
+      CodeUri: lambda/comprehend-fulltext/
       Handler: app.lambda_handler
       Runtime: python3.9
       Timeout: 150
@@ -817,7 +817,7 @@ Resources:
   TranscribeVocabCreate:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: transcribe-vocab/
+      CodeUri: lambda/transcribe-vocab/
       Handler: app.lambda_handler
       Runtime: python3.9
       Environment:
@@ -844,12 +844,12 @@ Outputs:
   APIEndpointUrl:
     Description: "API Gateway endpoint URL for Prod stage for Youtube Trigger function"
     Value: !Sub "https://${YouTubeCallbackAPI}.execute-api.${AWS::Region}.amazonaws.com/prod/"
-  KibanaPassword:
-    Description: The password for the kibana user
-    Value: !GetAtt ESCognito.KibanaPassword
-  KibanaUser:
-    Description: The username for the kibana user
-    Value: !GetAtt ESCognito.KibanaUser
-  KibanaUrl:
-    Description: A hyperlink to the Kibana tool
-    Value: !Sub https://${OpenSearchDomain.DomainEndpoint}/_plugin/kibana/
+  DashboardPassword:
+    Description: The password for the dashboard user
+    Value: !GetAtt ESCognito.DashboardPassword
+  DashboardUser:
+    Description: The username for the dashboard user
+    Value: !GetAtt ESCognito.DashboardUser
+  DashboardURL:
+    Description: A hyperlink to the Dashboard tool
+    Value: !Sub https://${OpenSearchDomain.DomainEndpoint}/_dashboards/
