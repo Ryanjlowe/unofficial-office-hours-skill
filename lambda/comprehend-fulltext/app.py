@@ -94,18 +94,18 @@ def process_transcript(transcription_url, vocabulary_info):
     clean_up_entity_results(entities_as_list)
     print(json.dumps(entities_as_list, indent=4))
 
-    # start = time.time()
-    # detected_phrase_response = comprehend.batch_detect_key_phrases(TextList=comprehend_chunks, LanguageCode='en')
-    # round_trip = time.time() - start
-    # logging.info('End of batch_detect_key_phrases. Took time {:10.4f}\n'.format(round_trip))
+    start = time.time()
+    detected_phrase_response = comprehend.batch_detect_key_phrases(TextList=comprehend_chunks, LanguageCode='en')
+    round_trip = time.time() - start
+    logging.info('End of batch_detect_key_phrases. Took time {:10.4f}\n'.format(round_trip))
 
-    # key_phrases = parse_detected_key_phrases_response(detected_phrase_response)
-    # logging.debug(json.dumps(key_phrases, indent=4))
+    key_phrases = parse_detected_key_phrases_response(detected_phrase_response)
+    logging.debug(json.dumps(key_phrases, indent=4))
 
     doc_to_update = {'transcript': paragraphs}
     doc_to_update['transcript_entities'] = entities_as_list
     logging.info(doc_to_update)
-    # doc_to_update['key_phrases'] = key_phrases
+    doc_to_update['key_phrases'] = key_phrases
     key = 'comprehend_output/transcript/' + id_generator() + '.json'
 
     response = s3_client.put_object(Body=json.dumps(doc_to_update, indent=2), Bucket=bucket, Key=key)

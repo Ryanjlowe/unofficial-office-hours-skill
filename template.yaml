@@ -571,6 +571,7 @@ Resources:
                 - 'comprehend:DetectEntities'
                 - 'comprehend:DetectKeyPhrases'
                 - 'comprehend:BatchDetectEntities'
+                - 'comprehend:BatchDetectKeyPhrases'
               Resource: '*'
             -
               Effect: Allow
@@ -603,6 +604,7 @@ Resources:
                 - 'comprehend:DetectEntities'
                 - 'comprehend:DetectKeyPhrases'
                 - 'comprehend:BatchDetectEntities'
+                - 'comprehend:BatchDetectKeyPhrases'
               Resource: '*'
             -
               Effect: Allow
@@ -613,6 +615,43 @@ Resources:
                 - !Sub 'arn:aws:s3:::${DataS3Bucket}'
       Architectures:
         - x86_64
+
+  OpensearchInsert:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/opensearch-insert/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Timeout: 150
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          BUCKET_NAME: !Ref DataS3Bucket
+          OS_DOMAIN: !GetAtt OpenSearchDomain.DomainEndpoint
+      Policies:
+        -
+          Statement:
+            -
+              Effect: Allow
+              Action:   # TODO - figure out exactly what is needed
+                - 's3:*'
+              Resource:
+                - !Sub 'arn:aws:s3:::${DataS3Bucket}/*'
+                - !Sub 'arn:aws:s3:::${DataS3Bucket}'
+            - 
+              Effect: Allow
+              Action:
+                - 'es:ESHttpGet'
+                - 'es:ESHttpPost'
+                - 'es:ESHttpPut'
+                - 'es:ESHttpHead'
+              Resource:
+                - !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${OpenSearchDomain}/*'
+                - !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${OpenSearchDomain}'
+      Architectures:
+        - x86_64
+
+
 
   PipelineStateMachine:
     Type: AWS::StepFunctions::StateMachine
@@ -713,7 +752,7 @@ Resources:
                 },
                 "ComprehendParallel": {
                   "Type": "Parallel",
-                  "Next": "End",
+                  "Next": "IndexResults",
                   "Branches": [
                     {
                       "StartAt": "ComprehendParagraph",
@@ -737,6 +776,11 @@ Resources:
                     }
                   ]
                 },
+                "IndexResults":{
+                  "Type": "Task",
+                  "Resource": "${OpensearchInsertArn}",
+                  "Next": "End"
+                },
                 "End":{
                     "Type": "Pass",
                     "End": true
@@ -748,7 +792,7 @@ Resources:
                 }
               }
             }
-          - {YouTubeGetInfoArn: !GetAtt YouTubeGetInfo.Arn, YouTubeDownloadArn: !GetAtt YouTubeDownload.Arn,   YouTubeConversionStartArn: !GetAtt YouTubeConversionStart.Arn, YouTubeConversionStatusArn: !GetAtt YouTubeConversionStatus.Arn, TranscribeStartArn: !GetAtt TranscribeStart.Arn, TranscribeStatusArn: !GetAtt TranscribeStatus.Arn, ComprehendParagraphArn: !GetAtt ComprehendParagraph.Arn, ComprehendFullTextArn: !GetAtt ComprehendFullText.Arn}
+          - {YouTubeGetInfoArn: !GetAtt YouTubeGetInfo.Arn, YouTubeDownloadArn: !GetAtt YouTubeDownload.Arn,   YouTubeConversionStartArn: !GetAtt YouTubeConversionStart.Arn, YouTubeConversionStatusArn: !GetAtt YouTubeConversionStatus.Arn, TranscribeStartArn: !GetAtt TranscribeStart.Arn, TranscribeStatusArn: !GetAtt TranscribeStatus.Arn, ComprehendParagraphArn: !GetAtt ComprehendParagraph.Arn, ComprehendFullTextArn: !GetAtt ComprehendFullText.Arn, OpensearchInsertArn: !GetAtt OpensearchInsert.Arn}
 
 
 #### IAM ROLES
@@ -804,6 +848,7 @@ Resources:
                   - !GetAtt TranscribeStatus.Arn
                   - !GetAtt ComprehendParagraph.Arn
                   - !GetAtt ComprehendFullText.Arn
+                  - !GetAtt OpensearchInsert.Arn
 
 
 ### Resources that run once

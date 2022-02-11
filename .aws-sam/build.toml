@@ -86,7 +86,7 @@ functions = ["TranscribeStatus"]
 codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/lambda/comprehend-paragraph"
 runtime = "python3.9"
 architecture = "x86_64"
-source_hash = "d89798d867bb5827485eb1fad27e22853f9449221ba5af9eb2a0bd197b3870be"
+source_hash = "3451e305736dd41e4586c754e1bb069f2845b46e5d3c501ccdc974d82575626f"
 manifest_hash = ""
 packagetype = "Zip"
 functions = ["ComprehendParagraph"]
@@ -95,7 +95,7 @@ functions = ["ComprehendParagraph"]
 codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/lambda/comprehend-fulltext"
 runtime = "python3.9"
 architecture = "x86_64"
-source_hash = "dd7534bd258e3b11406a819d99d4c15325612cc4874aa61274d60f83c41a8e23"
+source_hash = "38c6f7239b63b1ac6a23f3681b91ee91b3745713c4d2ac7619dd4e62bb3e4435"
 manifest_hash = ""
 packagetype = "Zip"
 functions = ["ComprehendFullText"]
@@ -108,5 +108,14 @@ source_hash = "b6d86d171c5816637a31911e1e16de4ff0ce1c0d0603656ea90b0c0f8a4d33aa"
 manifest_hash = ""
 packagetype = "Zip"
 functions = ["TranscribeVocabCreate"]
+
+[function_build_definitions.8c75585d-db5f-4877-815e-2e8f120821f5]
+codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/lambda/opensearch-insert"
+runtime = "python3.9"
+architecture = "x86_64"
+source_hash = "0e4867be77c11f55802bf950484f91855036ca9bda99a82f52e83df9e3930c86"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["OpensearchInsert"]
 
 [layer_build_definitions]

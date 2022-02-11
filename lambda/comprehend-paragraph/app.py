@@ -175,6 +175,7 @@ def lambda_handler(event, context):
                     "text": contents,
                     "gap": gap,
                     "tags": run_comprehend(contents),
+                    "key_phrases": run_comprehend_key_phrases(contents),
                     "reason": reason,
                     "speaker": prevSpeaker,
                     "len": len(contents)
@@ -217,6 +218,7 @@ def lambda_handler(event, context):
         "endTime": prevEndTime,
         "text": contents,
         "tags": run_comprehend(contents),
+        "key_phrases": run_comprehend_key_phrases(contents),
         "speaker": prevSpeaker
     })
 
@@ -255,6 +257,12 @@ def run_comprehend(text):
             keywords.append(entity["Text"])
 
     return keywords
+
+# Run comprehend and extract the key phrases from the podcast.
+def run_comprehend_key_phrases(text):
+    response = client.detect_key_phrases(Text=text, LanguageCode='en')
+    return response["KeyPhrases"]
+
 
 
 # uses the offset in the string and the timedata mapping to convert the string index to a time value from
