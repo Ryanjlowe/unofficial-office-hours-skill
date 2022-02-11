@@ -43,33 +43,113 @@ def create_episode_index():
     mappings = '''
     {
         "mappings": {
-            "properties": {
-                "media_url":{
-                    "type": "keyword"
+            "properties" : {
+                "Name" : {
+                    "type" : "text"
                 },
-                "media_type":{
-                    "type": "keyword"
+                "ProcessedVideoKey" : {
+                    "type" : "keyword"
                 },
-                "transcript":{
-                    "type": "text"
+                "PublishDate" : {
+                    "type" : "date"
                 },
-                "media_s3_location": {
-                    "type": "keyword"
+                "Title" : {
+                    "type" : "text"
                 },
-                "published_time":{
-                    "type":   "date",
-                    "format": "yyyy:MM:dd HH:mm:ss"
+                "YouTubeURL" : {
+                    "type" : "keyword"
                 },
-                "summary": {
-                    "type": "text"
+                "YouTubeVideoID" : {
+                    "type" : "keyword"
                 },
-                "source_feed":{
-                    "type": "keyword"
+                "key_phrases" : {
+                    "type": "nested",
+                    "properties" : {
+                        "BeginOffset" : {
+                            "type" : "long"
+                        },
+                        "EndOffset" : {
+                            "type" : "long"
+                        },
+                        "Score" : {
+                            "type" : "float"
+                        },
+                        "Text" : {
+                            "type" : "text",
+                            "fields" : {
+                                "keyword" : {
+                                "type" : "keyword",
+                                "ignore_above" : 256
+                                }
+                            }
+                        }
+                    }
+                },
+                "transcript" : {
+                    "type" : "text"
+                },
+                "transcript_entities" : {
+                    "properties" : {
+                        "DATE" : {
+                            "type" : "text",
+                            "fields" : {
+                                "keyword" : {
+                                "type" : "keyword",
+                                "ignore_above" : 256
+                                }
+                            }
+                        },
+                        "LOCATION" : {
+                            "type" : "text",
+                            "fields" : {
+                                "keyword" : {
+                                "type" : "keyword",
+                                "ignore_above" : 256
+                                }
+                            }
+                        },
+                        "ORGANIZATION" : {
+                            "type" : "text",
+                            "fields" : {
+                                "keyword" : {
+                                "type" : "keyword",
+                                "ignore_above" : 256
+                                }
+                            }
+                        },
+                        "OTHER" : {
+                            "type" : "text",
+                            "fields" : {
+                                "keyword" : {
+                                "type" : "keyword",
+                                "ignore_above" : 256
+                                }
+                            }
+                        },
+                        "PERSON" : {
+                            "type" : "text",
+                            "fields" : {
+                                "keyword" : {
+                                "type" : "keyword",
+                                "ignore_above" : 256
+                                }
+                            }
+                        },
+                        "Products_and_Titles" : {
+                            "type" : "text",
+                            "fields" : {
+                                "keyword" : {
+                                "type" : "keyword",
+                                "ignore_above" : 256
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
-    }
-    '''
+    }'''
+    
     start = time.time()
     logging.info("mappings to create for index: " + mappings)
     res = client.indices.create(index=FULL_EPISODE_INDEX, body=mappings)
@@ -81,24 +161,78 @@ def create_paragraph_index():
     mappings = '''
     {
         "mappings": {
-            "properties": {
-                "media_url":{
-                    "type": "keyword"
+            "properties" : {
+                "Name" : {
+                    "type" : "text"
                 },
-                "transcript":{
-                    "type": "text"
+                "ProcessedVideoKey" : {
+                    "type" : "keyword"
                 },
-                "published_time":{
-                    "type":   "date",
-                    "format": "yyyy:MM:dd HH:mm:ss"
+                "PublishDate" : {
+                    "type" : "date"
                 },
-                "speaker": {
-                    "type": "text"
+                "Title" : {
+                    "type" : "text"
+                },
+                "YouTubeURL" : {
+                    "type" : "keyword"
+                },
+                "YouTubeVideoID" : {
+                    "type" : "keyword"
+                },
+                "key_phrases" : {
+                    "type": "nested",
+                    "properties" : {
+                        "BeginOffset" : {
+                            "type" : "long"
+                        },
+                        "EndOffset" : {
+                            "type" : "long"
+                        },
+                        "Score" : {
+                            "type" : "float"
+                        },
+                        "Text" : {
+                            "type" : "text",
+                            "fields" : {
+                                "keyword" : {
+                                "type" : "keyword",
+                                "ignore_above" : 256
+                                }
+                            }
+                        }
+                    }
+                },
+                "media_url" : {
+                    "type" : "keyword"
+                },
+                "published_time" : {
+                    "type" : "date",
+                    "format" : "yyyy:MM:dd HH:mm:ss"
+                },
+                "speaker" : {
+                    "type" : "keyword"
+                },
+                "startTime" : {
+                    "type" : "float"
+                },
+                "tags" : {
+                    "type" : "text",
+                    "fields" : {
+                        "keyword" : {
+                        "type" : "keyword",
+                        "ignore_above" : 256
+                        }
+                    }
+                },
+                "text" : {
+                    "type" : "text"
                 }
             }
         }
-    }
-    '''
+    }'''
+
+
     start = time.time()
     logging.info("mappings to create for index: " + mappings)
     res = client.indices.create(index=PARAGRAPHS_INDEX, body=mappings)

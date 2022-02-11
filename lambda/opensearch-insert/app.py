@@ -72,8 +72,8 @@ def index_episode(event):
         "YouTubeURL": event["metadata"]["YouTubeURL"],
         "ProcessedVideoKey": event["metadata"]["Name"] + ".mp4",
         'transcript': fullepisode['transcript'],
-        'transcript_entities': fullepisode['transcript_entities'],
-        'key_phrases': fullepisode['key_phrases']
+        # 'transcript_entities': fullepisode['transcript_entities'],
+        # 'key_phrases': fullepisode['key_phrases']
     }
 
     logging.info("request")
@@ -103,6 +103,7 @@ def index_keywords(event):
         actions.append({
             "_index": PARAGRAPHS_INDEX,
             "_type": "_doc",
+            "_id": event["metadata"]["YouTubeVideoID"] + "_" + time,
             "_source": {
                 "YouTubeVideoID": event["metadata"]["YouTubeVideoID"],
                 "Title": event["metadata"]["Title"],
@@ -110,7 +111,6 @@ def index_keywords(event):
                 "PublishDate": event["metadata"]["PublishDate"],
                 "YouTubeURL": event["metadata"]["YouTubeURL"],
                 "ProcessedVideoKey": event["metadata"]["Name"] + ".mp4",
-                'time': time,
                 "text": keyword,
                 "tags": tags,
                 "key_phrases": key_phrases,

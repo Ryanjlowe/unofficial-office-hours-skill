@@ -256,15 +256,10 @@ def parse_detected_key_phrases_response(detected_phrase_response):
 
     if 'ResultList' in detected_phrase_response:
         result_list = detected_phrase_response["ResultList"]
-        phrases_set = set()
+        phrases = []
         for result in result_list:
-            phrases = result['KeyPhrases']
-            for detected_phrase in phrases:
-                if float(detected_phrase["Score"]) >= ENTITY_CONFIDENCE_THRESHOLD:
-                    phrase = detected_phrase["Text"]
-                    phrases_set.add(phrase)
-        key_phrases = list(phrases_set)
-        return key_phrases
+            phrases.append(result['KeyPhrases'])
+        return phrases
     else:
         return []
 
