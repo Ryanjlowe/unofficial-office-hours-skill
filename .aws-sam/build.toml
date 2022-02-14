@@ -14,7 +14,7 @@ functions = ["SetupOSCognitoCustomResourceLambda"]
 codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/lambda/index-create"
 runtime = "python3.9"
 architecture = "x86_64"
-source_hash = "9e7f56e3680a85072bb3c41f89c53c2a42d6b957e77356fc4188a8e22b5d80a9"
+source_hash = "73f2778ab839c345b59e184c25c302d39cc29eddefbed9d8604428f790d76798"
 manifest_hash = ""
 packagetype = "Zip"
 functions = ["CreateOSIndexLambda"]
@@ -23,7 +23,7 @@ functions = ["CreateOSIndexLambda"]
 codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/lambda/youtube-callback-api"
 runtime = "python3.9"
 architecture = "x86_64"
-source_hash = "c565c85998b43f50014341981117dee255b2a1f2daf5c1481d8bd347ce5f771c"
+source_hash = "c4aae7ddb8f995082f895701a0a0eb6df1d71344edf5097549274e998a62fa1c"
 manifest_hash = ""
 packagetype = "Zip"
 functions = ["YouTubeCallbackApiLambda"]
@@ -95,7 +95,7 @@ functions = ["ComprehendParagraph"]
 codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/lambda/comprehend-fulltext"
 runtime = "python3.9"
 architecture = "x86_64"
-source_hash = "38c6f7239b63b1ac6a23f3681b91ee91b3745713c4d2ac7619dd4e62bb3e4435"
+source_hash = "35ab69fb56bd3f73e9a72b8ec79f8d39fe63f43e84628540a1c974ab0216db6b"
 manifest_hash = ""
 packagetype = "Zip"
 functions = ["ComprehendFullText"]
@@ -113,9 +113,18 @@ functions = ["TranscribeVocabCreate"]
 codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/lambda/opensearch-insert"
 runtime = "python3.9"
 architecture = "x86_64"
-source_hash = "0e4867be77c11f55802bf950484f91855036ca9bda99a82f52e83df9e3930c86"
+source_hash = "a0b1c5a0f18858d7ff5ad95d750f5c08c4ededdb7fb50b0844b50fd281a9e36c"
 manifest_hash = ""
 packagetype = "Zip"
 functions = ["OpensearchInsert"]
+
+[function_build_definitions.070665c4-a6e5-46a7-b427-ced07e0b2554]
+codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/lambda/pubsubhubbub"
+runtime = "python3.9"
+architecture = "x86_64"
+source_hash = "802ad4328ea688db2d923e7176f6281aa58f8763724be6d83762696c4519e952"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["PubSubHubBubLambda"]
 
 [layer_build_definitions]

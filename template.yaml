@@ -23,7 +23,6 @@ Parameters:
     Default: admin
     Description: The name of the user that is used to log into OpenSearch Dashboard.
 
-
 Globals:
   Function:
     Timeout: 3
@@ -61,57 +60,6 @@ Resources:
             Condition:
               Bool:
                 "aws:SecureTransport": "false"
-
-  # MediaConvertJobTemplate:
-  #   Type: AWS::MediaConvert::JobTemplate
-  #   Properties:
-  #     AccelerationSettings:
-  #       Mode: "DISABLED"
-  #     StatusUpdateInterval: 'SECONDS_60'
-  #     Priority: 0
-  #     SettingsJson:
-  #       TimecodeConfig:
-  #         Source: 'ZEROBASED'
-  #       OutputGroups:
-  #         -
-  #           CustomName: Group
-  #           Name: 'File Group'
-  #           Outputs:
-  #             -
-  #               ContainerSettings:
-  #                 Container: 'MP4'
-  #               VideoDescription:
-  #                 CodecSettings:
-  #                   Codec: 'H_264'
-  #                   H264Settings:
-  #                     MaxBitrate: 5000000
-  #                     RateControlMode: 'QVBR'
-  #                     SceneChangeDetect: 'TRANSITION_DETECTION'
-  #               AudioDescriptions:
-  #                 -
-  #                   AudioSourceName: "Audio Selector 1"
-  #                   CodecSettings:
-  #                     Codec: 'AAC'
-  #                     AacSettings:
-  #                       Bitrate: 96000
-  #                       CodingMode: "CODING_MODE_2_0"
-  #                       SampleRate: 48000
-  #           OutputGroupSettings:
-  #             Type: "FILE_GROUP_SETTINGS"
-  #             FileGroupSettings:
-  #               Destination: !Sub "s3://${DataS3Bucket}/processed/"
-  #       Inputs:
-  #         -
-  #           AudioSelectors:
-  #             "Audio Selector 1":
-  #               Tracks:
-  #                 -
-  #                   1
-  #               DefaultSelection: "DEFAULT"
-  #               SelectorType: TRACK
-  #           TimecodeSource: 'ZEROBASED'
-
-
 
   VideoMetadataTable:
     Type: AWS::Serverless::SimpleTable
@@ -357,6 +305,7 @@ Resources:
         Variables:
           LOG_LEVEL: INFO
           STATE_MACHINE_ARN: !Ref PipelineStateMachine
+          RESUB_STATE_MACHINE_ARN: !Ref PubSubHubBubStateMachine
           YOUTUBE_CHANNEL: !Ref YouTubeChannelID
       Events:
         ApiEvent:
@@ -378,6 +327,7 @@ Resources:
                 - states:StartExecution
               Resource:
                 - !Ref PipelineStateMachine
+                - !Ref PubSubHubBubStateMachine
 
 
   YouTubeGetInfo:
@@ -850,6 +800,74 @@ Resources:
                   - !GetAtt ComprehendFullText.Arn
                   - !GetAtt OpensearchInsert.Arn
 
+
+
+####################
+# State Machine for pubsubhubbub
+####################
+
+  PubSubHubBubLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/pubsubhubbub/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          YOUTUBE_CHANNEL: !Ref YouTubeChannelID
+          # CALLBACK_URL: !Sub "https://${YouTubeCallbackAPI}.execute-api.${AWS::Region}.amazonaws.com/prod/"
+          SECRET: mysupersecretkeydoglexi
+                  
+  PubSubHubBubStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      RoleArn: !GetAtt PubSubHubBubStateMachineRole.Arn
+      DefinitionString:
+        !Sub
+          - |-
+            {
+              "StartAt": "Wait",
+              "States": {
+                "Wait":{
+                  "Type": "Wait",
+                  "SecondsPath": "$.secondsWait",
+                  "Next": "RefreshSubscription"
+                },
+                "RefreshSubscription": {
+                  "Type": "Task",
+                  "Resource": "${PubSubHubBubLambdaArn}",
+                  "End": true
+                }
+              }
+            }
+          - {PubSubHubBubLambdaArn: !GetAtt PubSubHubBubLambda.Arn}
+
+  PubSubHubBubStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "states.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "root"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: "lambda:InvokeFunction"
+                Resource:
+                  - !GetAtt PubSubHubBubLambda.Arn
 
 ### Resources that run once
 

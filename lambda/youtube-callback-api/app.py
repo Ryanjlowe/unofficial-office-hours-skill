@@ -6,6 +6,7 @@ import logging
 import xml.etree.ElementTree as ET
 
 state_machine_arn = os.environ['STATE_MACHINE_ARN']
+resubscribe_state_machine_arn = os.environ['RESUB_STATE_MACHINE_ARN']
 youtube_channel = os.environ['YOUTUBE_CHANNEL']
 
 client = boto3.client('stepfunctions')
@@ -30,6 +31,19 @@ def lambda_handler(event, context):
     # Check if this is a subscription event and matches our channel
     if event["queryStringParameters"] and "hub.challenge" in event["queryStringParameters"] and event["queryStringParameters"]["hub.topic"].endswith(youtube_channel):
         retVal = event["queryStringParameters"]["hub.challenge"]
+
+        smInput = {
+            "secondsWait": int(event["queryStringParameters"]["hub.lease_seconds"]),
+            "callback_url": f"https://{event['requestContext']['domainName']}{event['requestContext']['path']}"
+        }
+
+        response = client.start_execution(
+            stateMachineArn=resubscribe_state_machine_arn,
+            input=json.dumps(smInput)
+        )
+        logging.info(response)
+
+        
     else:
 
         root = ET.fromstring(event["body"])
