@@ -32,7 +32,7 @@ functions = ["YouTubeCallbackApiLambda"]
 codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/lambda/youtube-getinfo"
 runtime = "nodejs14.x"
 architecture = "x86_64"
-source_hash = "963d0a6b1fa815028c3eeedd24ed02dc97e2df8dc86b3cb5d03770e7a33125ef"
+source_hash = "ac450c2580f8d59df2aefd6d9044e0e2b11acdf8ef635bc58d0bc04264e8996c"
 manifest_hash = ""
 packagetype = "Zip"
 functions = ["YouTubeGetInfo"]
@@ -126,5 +126,32 @@ source_hash = "802ad4328ea688db2d923e7176f6281aa58f8763724be6d83762696c4519e952"
 manifest_hash = ""
 packagetype = "Zip"
 functions = ["PubSubHubBubLambda"]
+
+[function_build_definitions.7be3dbac-6f0a-42b1-8049-27a7e933f949]
+codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/lambda/youtube-getchannel"
+runtime = "nodejs14.x"
+architecture = "x86_64"
+source_hash = "4afde5226b744d4f56336c696278bd38d96b7bbf66b328b1ed34db448f851f26"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["YouTubeGetChannel"]
+
+[function_build_definitions.0a274a87-fb4d-4d66-893e-977824ff2ff5]
+codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/lambda/youtube-statemachine-start"
+runtime = "python3.9"
+architecture = "x86_64"
+source_hash = "0846191f0e78cd155fd6e6742459b4755f62cb930ce584c2291643da48f89025"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["YouTubeVideoStateMachineStart"]
+
+[function_build_definitions.fdb16e39-db46-4955-a700-7d1913070aca]
+codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/lambda/youtube-statemachine-status"
+runtime = "python3.9"
+architecture = "x86_64"
+source_hash = "247cf707b6b025da5237c63db89ae5b19a9a96708c64f6b57d274833134f4c2c"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["YouTubeVideoStateMachineStatus"]
 
 [layer_build_definitions]

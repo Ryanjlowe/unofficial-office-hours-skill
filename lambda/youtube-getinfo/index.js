@@ -32,18 +32,11 @@ exports.handler = async (event) => {
       }
   };
 
-  let epochStart = info.player_response.playabilityStatus.status === 'OK' ? 0 :
-            parseInt(info.player_response.playabilityStatus.liveStreamability.liveStreamabilityRenderer.offlineSlate.liveStreamOfflineSlateRenderer.scheduledStartTime);
-
-  const now = Math.round(Date.now() / 1000);
-
-  let secondsWait = epochStart === 0 ? 0 : (epochStart - now) + (70 * 60);
-
   return docClient.put(params).promise()
     .then(() => {
       return {
         "youtubeUrl": event.youtubeUrl,
-        "secondsWait": secondsWait,
+        "youtubeStatus": info.player_response.playabilityStatus.status,
         "metadata":{
           "YouTubeVideoID": id,
           "Title": title,

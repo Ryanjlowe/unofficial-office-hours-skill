@@ -293,7 +293,158 @@ Resources:
               - !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${OpenSearchDomain}'
 
 
+
+
+
+  ProcessVideoArchiveStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      RoleArn: !GetAtt ProcessVideoArchiveStateMachineRole.Arn
+      DefinitionString:
+        !Sub
+          - |-
+            {
+              "StartAt": "GetAllVideos",
+              "States": {
+                "GetAllVideos":{
+                  "Type": "Task",
+                  "Resource": "${YouTubeGetChannelArn}",
+                  "Next": "CheckIndex"
+                },
+
+                "CheckIndex": {
+                  "Type": "Choice",
+                  "Default": "StartNewStateMachineExecution",
+                  "Choices": [
+                    {
+                      "Variable": "$.Index",
+                      "NumericEqualsPath": "$.Length",
+                      "Next": "End"
+                    }
+                  ]
+                },
+
+                "StartNewStateMachineExecution": {
+                  "Type": "Task",
+                  "Resource": "${YouTubeVideoStateMachineStartArn}",
+                  "Next": "WaitForExecution"
+                },
+                "WaitForExecution": {
+                  "Type": "Wait",
+                  "Seconds": 900,
+                  "Next": "CheckStateMachineExecutionStatus"
+                },
+                "CheckStateMachineExecutionStatus": {
+                  "Type": "Task",
+                  "Resource": "${YouTubeVideoStateMachineStatusArn}",
+                  "Next": "CheckIfComplete"
+                },
+                "CheckIfComplete": {
+                  "Type": "Choice",
+                  "Default": "CheckIndex",
+                  "Choices": [
+                    {
+                      "Variable": "$.ExecutionStatus",
+                      "StringEquals": "RUNNING",
+                      "Next": "WaitForExecution"
+                    }
+                  ]
+                },
+                "End":{
+                    "Type": "Pass",
+                    "End": true
+                }
+              }
+            }
+          - {YouTubeGetChannelArn: !GetAtt YouTubeGetChannel.Arn, YouTubeVideoStateMachineStartArn: !GetAtt YouTubeVideoStateMachineStart.Arn, YouTubeVideoStateMachineStatusArn: !GetAtt YouTubeVideoStateMachineStatus.Arn}
+
+  ProcessVideoArchiveStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "states.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        -
+          PolicyName: "root"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: "lambda:InvokeFunction"
+                Resource:
+                  - !GetAtt YouTubeGetChannel.Arn
+                  - !GetAtt YouTubeVideoStateMachineStart.Arn
+                  - !GetAtt YouTubeVideoStateMachineStatus.Arn
+
   ###### LAMBDA DEFINITIONS
+
+  YouTubeGetChannel:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/youtube-getchannel/
+      Handler: index.handler
+      Runtime: nodejs14.x
+      Timeout: 60
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          CHANNEL_ID: !Ref YouTubeChannelID
+
+  YouTubeVideoStateMachineStart:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/youtube-statemachine-start/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          STATE_MACHINE_ARN: !Ref PipelineStateMachine
+      Policies:
+        -
+          Statement:
+            -
+              Sid: TriggerStateMachine
+              Effect: Allow
+              Action:
+                - states:ListStateMachines
+                - states:DescribeStateMachine
+                - states:StartExecution
+              Resource:
+                - !Ref PipelineStateMachine
+
+  YouTubeVideoStateMachineStatus:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/youtube-statemachine-status/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+      Policies:
+        -
+          Statement:
+            -
+              Sid: TriggerStateMachine
+              Effect: Allow
+              Action:
+                - states:ListStateMachines
+                - states:DescribeStateMachine
+                - states:DescribeExecution
+              Resource:
+                - !Ref PipelineStateMachine
+
 
   YouTubeCallbackApiLambda:
     Type: AWS::Serverless::Function
@@ -616,12 +767,20 @@ Resources:
                 "YouTubeGetInfo":{
                   "Type": "Task",
                   "Resource": "${YouTubeGetInfoArn}",
-                  "Next": "YouTubeWait"
+                  "Next": "YouTubeOKFilter"
                 },
-                "YouTubeWait": {
-                  "Type": "Wait",
-                  "SecondsPath": "$.secondsWait",
-                  "Next": "YouTubeDownload"
+                "YouTubeOKFilter": {
+                  "Type": "Choice",
+                  "Default": "YouTubeDownload",
+                  "Choices": [
+                    {
+                      "Not": {
+                        "Variable": "$.youtubeStatus",
+                        "StringEquals": "OK"
+                      },
+                      "Next": "End"
+                    }
+                  ]
                 },
                 "YouTubeDownload": {
                   "Type": "Task",
@@ -635,7 +794,7 @@ Resources:
                 },
                 "YouTubeConvertWait": {
                   "Type": "Wait",
-                  "Seconds": 30,
+                  "Seconds": 120,
                   "Next": "YouTubeConvertStatus"
                 },
                 "YouTubeConvertStatus": {
@@ -676,7 +835,7 @@ Resources:
                 },
                 "TranscribeWait": {
                   "Type": "Wait",
-                  "Seconds": 30,
+                  "Seconds": 120,
                   "Next": "TranscribeStatus"
                 },
                 "TranscribeStatus": {
