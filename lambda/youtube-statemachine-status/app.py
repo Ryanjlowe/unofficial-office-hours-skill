@@ -4,8 +4,6 @@ import json
 import os
 import logging
 
-state_machine_arn = os.environ['STATE_MACHINE_ARN']
-
 client = boto3.client('stepfunctions')
 
 

@@ -444,6 +444,7 @@ Resources:
                 - states:DescribeExecution
               Resource:
                 - !Ref PipelineStateMachine
+                - !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:execution*"
 
 
   YouTubeCallbackApiLambda:

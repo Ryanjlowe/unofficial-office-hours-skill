@@ -27,7 +27,7 @@ exports.handler = async (event) => {
   
   return {
     "Urls": urls,
-    "Index": 0,
+    "Index": event.Index ?? 0,
     "Length": total
   };
   
