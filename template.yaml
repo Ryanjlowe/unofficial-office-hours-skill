@@ -22,12 +22,51 @@ Parameters:
     Type: String
     Default: admin
     Description: The name of the user that is used to log into OpenSearch Dashboard.
+  AlexaSkillID:
+    Type: String
+    Default: amzn1.ask.skill.cbd690c5-7370-48ec-afb4-fd941dba1212
+    Description: The Alexa Skill ID generated from the Alexa Developer console
 
 Globals:
   Function:
     Timeout: 3
 
 Resources:
+
+  ##### Alexa Skill Lambda
+  AlexaSkillBackend:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/skill-backend/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Timeout: 30
+      Events:
+        SkillEvent:
+          Type: AlexaSkill
+          Properties: 
+            SkillId: !Ref AlexaSkillID
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          OS_DOMAIN: !GetAtt OpenSearchDomain.DomainEndpoint
+          CDN_URL: !Sub https://${CDNDistribution.DomainName}/processed/
+      Policies:
+        -
+          Statement:
+            - 
+              Effect: Allow
+              Action:
+                - 'es:ESHttpGet'
+                - 'es:ESHttpPost'
+                - 'es:ESHttpPut'
+                - 'es:ESHttpHead'
+              Resource:
+                - !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${OpenSearchDomain}/*'
+                - !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${OpenSearchDomain}'
+
+  #### Other Resource
+
 
   DataS3Bucket:
     Type: AWS::S3::Bucket
@@ -60,6 +99,48 @@ Resources:
             Condition:
               Bool:
                 "aws:SecureTransport": "false"
+          - Sid: AllowCloudFront
+            Action: "s3:Get*"
+            Effect: Allow
+            Resource: 
+              - !Sub "arn:aws:s3:::${DataS3Bucket}/processed/*"
+            Principal:
+              CanonicalUser: !GetAtt OriginAccessIdentity.S3CanonicalUserId
+
+  OriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: "pail.live OAI"
+
+  CDNDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+        - DomainName: !Sub "${DataS3Bucket}.s3.amazonaws.com"
+          Id: myS3Origin
+          S3OriginConfig:
+            OriginAccessIdentity: !Join ["", ["origin-access-identity/cloudfront/", !Ref OriginAccessIdentity]]
+        Enabled: 'true'
+        Comment: This will be used to stream videos
+        DefaultRootObject: index.html
+        HttpVersion: http2
+        DefaultCacheBehavior:
+          AllowedMethods:
+          - GET
+          - HEAD
+          - OPTIONS
+          DefaultTTL: 3600
+          TargetOriginId: myS3Origin
+          ForwardedValues:
+            QueryString: 'false'
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy: redirect-to-https
+        PriceClass: PriceClass_200
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: 'true'
 
   VideoMetadataTable:
     Type: AWS::Serverless::SimpleTable
@@ -1076,3 +1157,9 @@ Outputs:
   DashboardURL:
     Description: A hyperlink to the Dashboard tool
     Value: !Sub https://${OpenSearchDomain.DomainEndpoint}/_dashboards/
+  AlexaSkillLambdaArn:
+    Description: The Alexa Skill ARN
+    Value: !GetAtt AlexaSkillBackend.Arn
+  CDNUrl:
+    Description: URL of the Cloudfront Distribution
+    Value: !Sub https://${CDNDistribution.DomainName}/

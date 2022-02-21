@@ -154,4 +154,13 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["YouTubeVideoStateMachineStatus"]
 
+[function_build_definitions.0e3bc5e7-6b22-4563-9d72-2903a21d6e42]
+codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/lambda/skill-backend"
+runtime = "python3.9"
+architecture = "x86_64"
+source_hash = "22e7a58e45a8c02dfc328d98687300520640e48fb1d86852a37e41bfc8a1e56f"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["AlexaSkillBackend"]
+
 [layer_build_definitions]
