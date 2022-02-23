@@ -1,0 +1,60 @@
+POST /paragraphs/_search
+{
+  "size": 30,
+  "_source": ["YouTubeVideoID", "Title", "Name", "PublishDate", "YouTubeURL", "ProcessedVideoKey", "text", "startTime"],
+  "query": {
+    "function_score": {
+      "query":{
+        "bool": {
+          "should": [
+            {
+                          
+              "query_string": {
+                "query": "horse sized duck"
+                ,"boost": 10
+              }
+            }
+          ]
+        }
+      },
+      "functions": [
+        {
+          "weight": 5,
+          "linear": {
+            "PublishDate": {
+              "scale": "2000d",
+              "decay": 0.8
+            }
+          }
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "episode": {
+      "terms": {
+        "field": "PublishDate",
+        "order": {
+          "top_hit": "desc"
+        }
+        
+      },
+      "aggs": {
+        "top_episode_hits": {
+          "top_hits": {
+            "_source": {
+              "include": ["YouTubeVideoID", "Title", "Name", "PublishDate", "YouTubeURL", "ProcessedVideoKey", "text", "startTime"]
+            }
+          }
+        },
+        "top_hit": {
+          "max": {
+            "script": {
+              "source": "_score"
+            }
+          }
+        }
+      }
+    }
+  }
+}
