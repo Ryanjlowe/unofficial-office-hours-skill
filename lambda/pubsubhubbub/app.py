@@ -24,22 +24,24 @@ def lambda_handler(event, context):
       log_level = 'INFO'
     logging.getLogger().setLevel(log_level)
 
-    logging.debug(event)
+    logging.info(event)
 
     callback_url = event['callback_url']
 
     # state_machine_arn = event["StateMachineARN"]
-
-
-    safe_callback = safe_string = urllib.parse.quote_plus(callback_url)
-    safe_topic = safe_string = urllib.parse.quote_plus(f"https://www.youtube.com/xml/feeds/videos.xml?channel_id={youtube_channel}")
-
-    url = f"https://pubsubhubbub.appspot.com/subscribe?hub.callback={safe_callback}&hub.mode=subscribe&hub.topic={safe_topic}&hub.secret={secret}"
+    url = f"https://pubsubhubbub.appspot.com/subscribe"
 
     logging.info(url)
 
     # Re-subscribe
-    contents = urllib.request.urlopen(url).read()
+    d = {
+        "hub.callback": callback_url,
+        "hub.mode": "subscribe",
+        "hub.topic": f"https://www.youtube.com/xml/feeds/videos.xml?channel_id={youtube_channel}"
+    }
+    data = urllib.parse.urlencode(d).encode()
+    req = urllib.request.Request(url, data = data)
+    contents = urllib.request.urlopen(req).read()
     logging.info(contents)
 
 
