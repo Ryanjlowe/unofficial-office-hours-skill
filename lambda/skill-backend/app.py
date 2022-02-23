@@ -17,6 +17,9 @@ from ask_sdk_core.handler_input import HandlerInput
 from ask_sdk_model import Response
 
 
+import searchClient
+
+
 class LaunchRequestHandler(AbstractRequestHandler):
     """Handler for Skill Launch."""
     def can_handle(self, handler_input):
@@ -44,12 +47,23 @@ class SearchIntentHandler(AbstractRequestHandler):
 
     def handle(self, handler_input):
         # type: (HandlerInput) -> Response
-        speak_output = "Hello World!"
+
+        request = handler_input.request_envelope.request
+        querySlot = request.intent.slots["query"]
+
+        speak_output = querySlot.value
+
+        query_results = searchClient.perform_search(querySlot.value)
+        logging.info(query_results)
+
+
+        reprompt = "was that helpful?"
+
 
         return (
             handler_input.response_builder
                 .speak(speak_output)
-                # .ask("add a reprompt if you want to keep the session open for the user to respond")
+                .ask(reprompt)
                 .response
         )
 
