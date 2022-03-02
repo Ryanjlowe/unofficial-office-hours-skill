@@ -17,6 +17,7 @@ exports.handler = async (event) => {
   const publishDate = info.videoDetails.publishDate;
   const id = info.videoDetails.videoId;
   const description = info.videoDetails.description;
+  const lengthInSeconds = info.videoDetails.lengthSeconds;
 
   console.log(JSON.stringify(info));
 
@@ -28,7 +29,8 @@ exports.handler = async (event) => {
           "name": name,
           "publishDate": publishDate,
           "description": description,
-          "youtubeUrl": event.youtubeUrl
+          "youtubeUrl": event.youtubeUrl,
+          "lengthInSeconds": lengthInSeconds
       }
   };
 

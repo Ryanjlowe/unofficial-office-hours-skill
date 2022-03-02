@@ -1,3 +1,4 @@
+from curses import meta
 import boto3
 import json
 import os
@@ -16,6 +17,13 @@ osendpoint = os.environ['OS_DOMAIN']
 FULL_EPISODE_INDEX = os.getenv('ES_EPISODE_INDEX', default='episodes')
 # get the Elasticsearch index name from the environment variables
 PARAGRAPHS_INDEX = os.getenv('ES_PARAGRAPH_INDEX', default='paragraphs')
+
+
+TABLE_NAME = os.environ['TABLE_NAME']
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table(TABLE_NAME)
+
+CDN_URL = os.environ['CDN_URL']
 
 
 service = 'es'
@@ -101,5 +109,51 @@ def perform_search(search_term):
     logging.info('\nSearch results:')
     logging.info(json.dumps(response))
 
-    return response
+
+    retVal = []
+
+    buckets = response["aggregations"]["episode"]["buckets"]
+
+    for bucket in buckets:
+        youtubeVideoId = bucket['key']
+        metadata = get_metadata(youtubeVideoId)
+
+        episode = {
+            'title': metadata['title'],
+            'description': metadata['description'],
+            'lengthInSeconds': 3600000 if 'lengthInSeconds' not in metadata else metadata['lengthInSeconds'],
+            'url': CDN_URL +  metadata['name'] + '.mp4',
+            'publish_date': metadata['publishDate'],
+            'results': []
+        }
+
+        hits = bucket["top_episode_hits"]["hits"]["hits"]
+
+        for hit in hits:
+            source = hit['_source']   
+            episode['results'].append({
+                # 'url': CDN_URL + source['ProcessedVideoKey'],
+                'offset': source["startTime"] * 1000
+            })
+
+
+        retVal.append(episode)
+
+
+    logging.info(retVal)
+
+
+    return retVal
+
+
+
+def get_metadata(youtubeVideoId):
+
+    response = table.get_item(
+        Key={
+            'id': youtubeVideoId
+        }
+    )
+    return response['Item']
+
 

@@ -51,6 +51,7 @@ Resources:
           LOG_LEVEL: INFO
           OS_DOMAIN: !GetAtt OpenSearchDomain.DomainEndpoint
           CDN_URL: !Sub https://${CDNDistribution.DomainName}/processed/
+          TABLE_NAME: !Ref VideoMetadataTable
       Policies:
         -
           Statement:
@@ -64,6 +65,14 @@ Resources:
               Resource:
                 - !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${OpenSearchDomain}/*'
                 - !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${OpenSearchDomain}'
+            -
+              Sid: DynamodbWrite
+              Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource:
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${VideoMetadataTable}"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${VideoMetadataTable}/index/*"
 
   #### Other Resource
 

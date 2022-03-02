@@ -32,6 +32,7 @@
             }
           ],
           "samples": [
+            "find {query}",
             "search {query}"
           ]
         }
@@ -39,5 +40,5 @@
       "types": []
     }
   },
-  "version": "5"
+  "version": "7"
 }

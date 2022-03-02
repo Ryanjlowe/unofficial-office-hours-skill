@@ -14,11 +14,12 @@ from ask_sdk_core.dispatch_components import AbstractRequestHandler
 from ask_sdk_core.dispatch_components import AbstractExceptionHandler
 from ask_sdk_core.handler_input import HandlerInput
 
+from ask_sdk_model.interfaces.alexa.presentation.apl import (RenderDocumentDirective)
+
 from ask_sdk_model import Response
 
 
 import searchClient
-
 
 class LaunchRequestHandler(AbstractRequestHandler):
     """Handler for Skill Launch."""
@@ -51,22 +52,65 @@ class SearchIntentHandler(AbstractRequestHandler):
         request = handler_input.request_envelope.request
         querySlot = request.intent.slots["query"]
 
-        speak_output = querySlot.value
+        # speak_output = querySlot.value
 
         query_results = searchClient.perform_search(querySlot.value)
         logging.info(query_results)
 
+        with open("./docs/videoplayer.json") as apl_doc:
+            apl_json = json.load(apl_doc)
 
-        reprompt = "was that helpful?"
+            if ask_utils.get_supported_interfaces(handler_input).alexa_presentation_apl is not None:
+                handler_input.response_builder.add_directive(
+                    RenderDocumentDirective(
+                        document=apl_json,
+                        datasources={
+                            "queryResults": {
+                                "results": query_results
+                            },
+                            "videoplayerData": {
+                                "transformers": [
+                                {
+                                    "inputPath": "spokenSsml",
+                                    "outputName": "speech",
+                                    "transformer": "ssmlToSpeech"
+                                },
+                                {
+                                    "inputPath": "spokenSsml",
+                                    "outputName": "spokenText",
+                                    "transformer": "ssmlToText"
+                                }
+                                ],
+                                "type": "object",
+                                "properties": {
+                                    "displayText": "Here are your search results",
+                                    "spokenText": "Here are your search results",
+                                    "spokenSsml": "<speak>Here are your search results</speak>"
+                                }
+                            }
+                        }
+                    )
+                )
+
+
+        # reprompt = "was that helpful?"
 
 
         return (
             handler_input.response_builder
-                .speak(speak_output)
-                .ask(reprompt)
+                # .speak(speak_output)
+                # .ask(reprompt)
                 .response
         )
 
+
+class HandleUserInputHandler(AbstractRequestHandler):
+    def can_handle(self, handler_input):
+        return ask_utils.request_util.get_request_type(handler_input) == 'Alexa.Presentation.APL.UserEvent'
+
+    def handle(self, handler_input):
+        # do nothing for right now
+        return (handler_input.response_builder.response)
 
 
 
