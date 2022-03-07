@@ -55,6 +55,25 @@ class SearchIntentHandler(AbstractRequestHandler):
         # speak_output = querySlot.value
 
         query_results = searchClient.perform_search(querySlot.value)
+
+
+        source = []
+        for result in query_results:
+            source.append({ 
+                "offset": result["results"][0]['offset'],
+                "url": result["url"],
+                "description": result['description'],
+                "lengthInSeconds": result['lengthInSeconds'],
+                "title": result['title']
+            })
+
+        # {
+        #                                 "description": "${payload.queryResults.episodes[episodeIndex].description}",
+        #                                 "offset": "${payload.queryResults.episodes[episodeIndex].results[resultIndex].offset}",
+        #                                 "url": "${payload.queryResults.episodes[episodeIndex].url}"
+        #                             }
+
+
         logging.info(query_results)
 
         with open("./docs/videoplayer.json") as apl_doc:
@@ -66,7 +85,8 @@ class SearchIntentHandler(AbstractRequestHandler):
                         document=apl_json,
                         datasources={
                             "queryResults": {
-                                "results": query_results
+                                "episodes": query_results,
+                                "source": source
                             },
                             "videoplayerData": {
                                 "transformers": [
@@ -234,6 +254,7 @@ sb = SkillBuilder()
 
 sb.add_request_handler(LaunchRequestHandler())
 sb.add_request_handler(SearchIntentHandler())
+sb.add_request_handler(HandleUserInputHandler())
 sb.add_request_handler(HelpIntentHandler())
 sb.add_request_handler(CancelOrStopIntentHandler())
 sb.add_request_handler(FallbackIntentHandler())

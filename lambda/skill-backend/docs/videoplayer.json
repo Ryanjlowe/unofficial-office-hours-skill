@@ -44,14 +44,24 @@
                 "width": "100vw",
                 "bind": [
                     {
+                        "name": "episodeIndex",
+                        "type": "number",
+                        "value": "0"
+                    },
+                    {
+                        "name": "resultIndex",
+                        "type": "number",
+                        "value": "0"
+                    },
+                    {
                         "name": "progressValue",
                         "type": "number",
-                        "value": "${payload.queryResults.results[0].results[0].offset}"
+                        "value": "${payload.queryResults.episodes[episodeIndex].results[resultIndex].offset}"
                     },
                     {
                         "name": "totalValue",
                         "type": "number",
-                        "value": "${payload.queryResults.results[0].lengthInSeconds}"
+                        "value": "${payload.queryResults.episodes[episodeIndex].lengthInSeconds}"
                     }
                 ],
                 "items": [
@@ -70,10 +80,11 @@
                                 "audioTrack": "foreground",
                                 "source": [
                                     {
-                                        "description": "${payload.queryResults.results[0].description}",
-                                        "offset": "${payload.queryResults.results[0].results[0].offset}",
-                                        "url": "${payload.queryResults.results[0].url}"
+                                        "description": "${payload.queryResults.episodes[episodeIndex].description}",
+                                        "offset": "${payload.queryResults.episodes[episodeIndex].results[resultIndex].offset}",
+                                        "url": "${payload.queryResults.episodes[episodeIndex].url}"
                                     }
+
                                 ],
                                 "onPause": [
                                     {
@@ -108,13 +119,13 @@
                                     {
                                         "type": "SetValue",
                                         "property": "totalValue",
-                                        "value": "${payload.queryResults.results[0].lengthInSeconds}"
+                                        "value": "${payload.queryResults.episodes[episodeIndex].lengthInSeconds}"
                                     },
                                     {
                                         "type": "SetValue",
                                         "property": "totalValue",
                                         "componentId": "roundHubBar",
-                                        "value": "${payload.queryResults.results[0].lengthInSeconds}"
+                                        "value": "${payload.queryResults.episodes[episodeIndex].lengthInSeconds}"
                                     },
                                     {
                                         "type": "Parallel",
@@ -135,7 +146,7 @@
                                                 "type": "SetValue",
                                                 "componentId": "title",
                                                 "property": "text",
-                                                "value": "${payload.queryResults.results[0].title}"
+                                                "value": "${payload.queryResults.episodes[episodeIndex].title}"
                                             },
                                             {
                                                 "type": "SetValue",
@@ -168,24 +179,24 @@
                                     {
                                         "type": "SetValue",
                                         "property": "progressValue",
-                                        "value": "${payload.queryResults.results[0].results[0].offset + event.currentTime}"
+                                        "value": "${payload.queryResults.episodes[episodeIndex].results[resultIndex].offset + event.currentTime}"
                                     },
                                     {
                                         "type": "SetValue",
                                         "property": "totalValue",
-                                        "value": "${payload.queryResults.results[0].lengthInSeconds}"
+                                        "value": "${payload.queryResults.episodes[episodeIndex].lengthInSeconds}"
                                     },
                                     {
                                         "type": "SetValue",
                                         "property": "progressValue",
                                         "componentId": "roundHubBar",
-                                        "value": "${payload.queryResults.results[0].results[0].offset + event.currentTime}"
+                                        "value": "${payload.queryResults.episodes[episodeIndex].results[resultIndex].offset + event.currentTime}"
                                     },
                                     {
                                         "type": "SetValue",
                                         "property": "totalValue",
                                         "componentId": "roundHubBar",
-                                        "value": "${payload.queryResults.results[0].lengthInSeconds}"
+                                        "value": "${payload.queryResults.episodes[episodeIndex].lengthInSeconds}"
                                     },
                                     {
                                         "type": "SendEvent",
@@ -199,29 +210,29 @@
                                         "type": "SetValue",
                                         "componentId": "roundHubBar",
                                         "property": "progressValue",
-                                        "value": "${payload.queryResults.results[0].results[0].offset}"
+                                        "value": "${payload.queryResults.episodes[episodeIndex].results[resultIndex].offset}"
                                     },
                                     {
                                         "type": "SetValue",
                                         "property": "progressValue",
-                                        "value": "${payload.queryResults.results[0].results[0].offset}"
+                                        "value": "${payload.queryResults.episodes[episodeIndex].results[resultIndex].offset}"
                                     },
                                     {
                                         "type": "SetValue",
                                         "property": "totalValue",
-                                        "value": "${payload.queryResults.results[0].lengthInSeconds}"
+                                        "value": "${payload.queryResults.episodes[episodeIndex].lengthInSeconds}"
                                     },
                                     {
                                         "type": "SetValue",
                                         "property": "totalValue",
                                         "componentId": "roundHubBar",
-                                        "value": "${payload.queryResults.results[0].lengthInSeconds}"
+                                        "value": "${payload.queryResults.episodes[episodeIndex].lengthInSeconds}"
                                     },
                                     {
                                         "type": "SetValue",
                                         "componentId": "title",
                                         "property": "text",
-                                        "value": "${payload.queryResults.results[0].title}"
+                                        "value": "${payload.queryResults.episodes[episodeIndex].title}"
                                     },
                                     {
                                         "type": "SetValue",
@@ -384,15 +395,39 @@
                                                     "secondaryControlsAVGLeft": "M3 20.25C3 20.6642 3.33579 21 3.75 21C4.16421 21 4.5 20.6642 4.5 20.25L4.5 3.75C4.5 3.33579 4.16422 3 3.75 3C3.33579 3 3 3.33579 3 3.75V20.25Z M18.2303 20.4748C19.3883 21.305 21 20.4774 21 19.0526L21 4.82961C21 3.44582 19.4698 2.60946 18.3051 3.35665L7.8354 10.073C6.79467 10.7407 6.75574 12.2477 7.76062 12.9682L18.2303 20.4748Z M19.5 19.0526C19.5 19.2561 19.2697 19.3743 19.1043 19.2557L8.63465 11.7492C8.4911 11.6463 8.49666 11.431 8.64534 11.3356L19.115 4.61919C19.2814 4.51245 19.5 4.63193 19.5 4.82961L19.5 19.0526Z",
                                                     "secondaryControlsAVGRight": "M21 3.75C21 3.33579 20.6642 3 20.25 3C19.8358 3 19.5 3.33579 19.5 3.75V20.25C19.5 20.6642 19.8358 21 20.25 21C20.6642 21 21 20.6642 21 20.25V3.75Z M5.7697 3.52521C4.61175 2.69498 3 3.5226 3 4.94743V19.1704C3 20.5542 4.53019 21.3905 5.69492 20.6434L16.1646 13.927C17.2053 13.2593 17.2443 11.7523 16.2394 11.0318L5.7697 3.52521Z M4.5 4.94743C4.5 4.74388 4.73025 4.62565 4.89567 4.74425L15.3653 12.2508C15.5089 12.3537 15.5033 12.569 15.3547 12.6644L4.88499 19.3808C4.7186 19.4876 4.5 19.3681 4.5 19.1704V4.94743Z",
                                                     "secondaryControlsRightAction": {
-                                                        "type": "SendEvent",
-                                                        "arguments": [
-                                                            "next"
+                                                        "type": "Sequential",
+                                                        "commands": [
+                                                            {
+                                                                "type": "SetValue",
+                                                                "property": "episodeIndex",
+                                                                "value": "${episodeIndex +1}"
+                                                            },
+                                                            {
+                                                                "type": "ControlMedia",
+                                                                "componentId": "videoPlayer",
+                                                                "source": [
+                                                                    {
+                                                                        "description": "${payload.queryResults.episodes[episodeIndex].description}",
+                                                                        "offset": "${payload.queryResults.episodes[episodeIndex].results[resultIndex].offset}",
+                                                                        "url": "${payload.queryResults.episodes[episodeIndex].url}"
+                                                                    }
+                                                                ]
+                                                            },
+                                                            {
+                                                                "type": "SetValue",
+                                                                "property": "totalValue",
+                                                                "value": "${payload.queryResults.episodes[episodeIndex].lengthInSeconds}"
+                                                            }
                                                         ]
                                                     },
                                                     "secondaryControlsLeftAction": {
-                                                        "type": "SendEvent",
-                                                        "arguments": [
-                                                            "previous"
+                                                        "type": "Parallel",
+                                                        "commands": [
+                                                            {
+                                                                "type": "ControlMedia",
+                                                                "componentId": "videoPlayer",
+                                                                "command": "previous"
+                                                            }
                                                         ]
                                                     }
                                                 }

@@ -1153,6 +1153,33 @@ Resources:
 
 
 
+########## Temp Lambda Resources
+  YouTubeCleanupInfo:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: lambda/youtube-getinfo-fix/
+      Handler: index.handler
+      Runtime: nodejs14.x
+      Timeout: 20
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          TABLE_NAME: !Ref VideoMetadataTable
+      Policies:
+        -
+          Statement:
+            -
+              Sid: DynamodbWrite
+              Effect: Allow
+              Action:
+                - dynamodb:*
+              Resource:
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${VideoMetadataTable}"
+                - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${VideoMetadataTable}/index/*"
+
+
+
+
 Outputs:
   APIEndpointUrl:
     Description: "API Gateway endpoint URL for Prod stage for Youtube Trigger function"

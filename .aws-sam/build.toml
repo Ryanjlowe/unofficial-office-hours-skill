@@ -163,4 +163,13 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["AlexaSkillBackend"]
 
+[function_build_definitions.bf09c064-04b2-4aae-94fa-d6fd8633983b]
+codeuri = "/Users/ryanjlowe/repos/GitHub/unofficial-office-hours-skill/lambda/youtube-getinfo-fix"
+runtime = "nodejs14.x"
+architecture = "x86_64"
+source_hash = "9a666211831652d958b6ba431cf17191a15afe4c8673a37eab103a9f0e67c0c3"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["YouTubeCleanupInfo"]
+
 [layer_build_definitions]
